@@ -1,0 +1,29 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: aganox-lms-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_strong_Password123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - aganox_lms_sqldata:/var/opt/mssql
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: aganox-lms-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=AganoxLms;User Id=sa;Password=Your_strong_Password123;TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Jwt__Key: "AganoxLms_Dev_Secret_Key_ChangeInProduction_32chars!"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - sqlserver
+
+volumes:
+  aganox_lms_sqldata:

@@ -1,0 +1,53 @@
+:root {
+  --aganox-ink: #1b2a33;
+  --aganox-accent: #1f6f5b;
+  --aganox-sand: #e8efe9;
+  --aganox-mist: #f3f7f5;
+  --aganox-line: #c9d6cf;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  color: var(--aganox-ink);
+  background:
+    radial-gradient(circle at top left, rgba(31, 111, 91, 0.12), transparent 40%),
+    linear-gradient(180deg, var(--aganox-mist), #ffffff 55%);
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+a {
+  color: var(--aganox-accent);
+}
+
+.brand-mark {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--aganox-ink);
+}
+
+.shell-nav {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--aganox-line);
+  backdrop-filter: blur(8px);
+}
+
+.auth-panel {
+  max-width: 420px;
+  margin: 8vh auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--aganox-line);
+}
+
+.btn-aganox {
+  background: var(--aganox-accent);
+  border-color: var(--aganox-accent);
+  color: #fff;
+}
+
+.btn-aganox:hover {
+  filter: brightness(0.95);
+  color: #fff;
+}

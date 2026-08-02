@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY src/backend/Aganox.Lms.sln ./
+COPY src/backend/Aganox.Lms.Domain/Aganox.Lms.Domain.csproj Aganox.Lms.Domain/
+COPY src/backend/Aganox.Lms.Application/Aganox.Lms.Application.csproj Aganox.Lms.Application/
+COPY src/backend/Aganox.Lms.Persistence/Aganox.Lms.Persistence.csproj Aganox.Lms.Persistence/
+COPY src/backend/Aganox.Lms.Infrastructure/Aganox.Lms.Infrastructure.csproj Aganox.Lms.Infrastructure/
+COPY src/backend/Aganox.Lms.Api/Aganox.Lms.Api.csproj Aganox.Lms.Api/
+RUN dotnet restore Aganox.Lms.Api/Aganox.Lms.Api.csproj
+COPY src/backend/ ./
+RUN dotnet publish Aganox.Lms.Api/Aganox.Lms.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Aganox.Lms.Api.dll"]

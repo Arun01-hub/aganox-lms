@@ -1,0 +1,183 @@
+# Shared prerequisite checks for Aganox LMS build/run scripts.
+
+function Write-PrereqHeader {
+    Write-Host ""
+    Write-Host "=== Aganox LMS - prerequisite check ===" -ForegroundColor Cyan
+}
+
+function Test-CommandExists {
+    param([string]$Name)
+    return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+function Get-DotNetSdkVersion {
+    if (-not (Test-CommandExists "dotnet")) { return $null }
+    $output = & dotnet --version 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return [version]$output
+}
+
+function Test-DotNet8Sdk {
+    param([ref]$Issues, [ref]$Warnings)
+
+    if (-not (Test-CommandExists "dotnet")) {
+        $Issues.Value += "dotnet CLI not found. Install .NET 8 SDK: https://dotnet.microsoft.com/download/dotnet/8.0"
+        return $false
+    }
+
+    $version = Get-DotNetSdkVersion
+    if ($null -eq $version) {
+        $Issues.Value += "Unable to determine .NET SDK version."
+        return $false
+    }
+
+    if ($version.Major -lt 8) {
+        $Issues.Value += ".NET SDK 8.0+ required (found $($version.ToString()))."
+        return $false
+    }
+
+    if ($version.Major -gt 8) {
+        $Warnings.Value += ".NET SDK $($version.ToString()) detected (project targets net8.0, SDK 8.x recommended)."
+    }
+
+    Write-Host "  [OK] .NET SDK $($version.ToString())" -ForegroundColor Green
+    return $true
+}
+
+function Test-NodeJs {
+    param(
+        [ref]$Issues,
+        [ref]$Warnings,
+        [int]$MinimumMajor = 18
+    )
+
+    if (-not (Test-CommandExists "node")) {
+        $Issues.Value += "Node.js not found. Install Node.js 18+ LTS: https://nodejs.org/"
+        return $false
+    }
+
+    $nodeVersionRaw = (cmd /c "node --version 2>nul") -replace '^v', '' -replace '\r',''
+    if (-not $nodeVersionRaw) {
+        $Issues.Value += "Unable to determine Node.js version."
+        return $false
+    }
+
+    $nodeVersion = [version]$nodeVersionRaw
+    if ($nodeVersion.Major -lt $MinimumMajor) {
+        $Issues.Value += "Node.js $MinimumMajor+ required (found v$nodeVersionRaw). PATH may be pointing at an older install."
+        return $false
+    }
+
+    if ($nodeVersion.Major -ge 23) {
+        $Warnings.Value += "Node.js v$nodeVersionRaw is newer than Angular 18 officially supports, build may still work."
+    }
+
+    $npmVersion = (cmd /c "npm --version 2>nul") -replace '\r',''
+    Write-Host "  [OK] Node.js v$nodeVersionRaw (npm $npmVersion)" -ForegroundColor Green
+    return $true
+}
+
+function Test-SqlLocalDb {
+    param(
+        [ref]$Issues,
+        [ref]$Warnings,
+        [switch]$Required
+    )
+
+    if (-not (Test-CommandExists "sqllocaldb")) {
+        if ($Required) {
+            $Issues.Value += "SQL Server LocalDB (sqllocaldb) not found. Install SQL Server Express / LocalDB."
+        } else {
+            $Warnings.Value += "sqllocaldb not found. API needs SQL Server LocalDB, Express, or a custom connection string."
+        }
+        return $false
+    }
+
+    $info = & sqllocaldb info MSSQLLocalDB 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0 -or $info -match "does not exist|not found") {
+        $Warnings.Value += "LocalDB instance MSSQLLocalDB not found. Run scripts\repair-localdb.ps1 or create it manually."
+        Write-Host "  [WARN] LocalDB instance MSSQLLocalDB missing" -ForegroundColor Yellow
+        return $false
+    }
+
+    if ($info -match "State:\s+Running") {
+        Write-Host "  [OK] LocalDB MSSQLLocalDB (Running)" -ForegroundColor Green
+    } elseif ($info -match "State:\s+Stopped") {
+        Write-Host "  [OK] LocalDB MSSQLLocalDB (Stopped - will start on first API run)" -ForegroundColor Green
+    } else {
+        Write-Host "  [OK] LocalDB MSSQLLocalDB installed" -ForegroundColor Green
+    }
+
+    return $true
+}
+
+function Test-DevHttpsCert {
+    param([ref]$Warnings)
+
+    if (-not (Test-CommandExists "dotnet")) { return $false }
+
+    $certs = & dotnet dev-certs https --check --trust 2>&1 | Out-String
+    if ($certs -match "A trusted certificate was found|already trusted") {
+        Write-Host "  [OK] HTTPS dev certificate trusted" -ForegroundColor Green
+        return $true
+    }
+
+    $Warnings.Value += "HTTPS dev certificate may not be trusted. Run: dotnet dev-certs https --trust"
+    Write-Host "  [WARN] HTTPS dev certificate not trusted" -ForegroundColor Yellow
+    return $false
+}
+
+function Invoke-PrerequisiteCheck {
+    param(
+        [ValidateSet("Build", "RunApi", "RunWeb", "All")]
+        [string]$Mode = "All",
+        [switch]$Strict
+    )
+
+    Write-PrereqHeader
+
+    $issues = [System.Collections.Generic.List[string]]::new()
+    $warnings = [System.Collections.Generic.List[string]]::new()
+
+    $needsBackend = $Mode -in @("Build", "RunApi", "All")
+    $needsFrontend = $Mode -in @("Build", "RunWeb", "All")
+
+    if ($needsBackend) {
+        Write-Host "Backend:" -ForegroundColor White
+        [void](Test-DotNet8Sdk -Issues ([ref]$issues) -Warnings ([ref]$warnings))
+        if ($Mode -in @("RunApi", "All")) {
+            [void](Test-SqlLocalDb -Issues ([ref]$issues) -Warnings ([ref]$warnings))
+            [void](Test-DevHttpsCert -Warnings ([ref]$warnings))
+        }
+    }
+
+    if ($needsFrontend) {
+        Write-Host "Frontend:" -ForegroundColor White
+        [void](Test-NodeJs -Issues ([ref]$issues) -Warnings ([ref]$warnings))
+    }
+
+    if ($warnings.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Warnings:" -ForegroundColor Yellow
+        foreach ($w in $warnings) { Write-Host "  - $w" -ForegroundColor Yellow }
+    }
+
+    if ($issues.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Missing prerequisites:" -ForegroundColor Red
+        foreach ($i in $issues) { Write-Host "  - $i" -ForegroundColor Red }
+        if ($Strict) { exit 1 }
+        Write-Host ""
+        Write-Host "Prerequisite check failed." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host ""
+    Write-Host "All required prerequisites satisfied." -ForegroundColor Green
+    return $true
+}
+
+function Get-RepoRoot {
+    $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+    return $root.Path
+}
