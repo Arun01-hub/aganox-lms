@@ -1,0 +1,45 @@
+@page
+@model Aganox.IdentityServer.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Sign in";
+}
+
+<section class="card" aria-labelledby="login-heading">
+    <div class="card__brand">
+        <span class="card__logo" aria-hidden="true">A</span>
+        <h1 id="login-heading" class="card__title">Sign in to Aganox</h1>
+    </div>
+    <p class="card__lead">Enter your credentials to continue to your application.</p>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert--error" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <form method="post" class="form">
+        <div class="form__group">
+            <label asp-for="Input.Email" class="form__label">Email</label>
+            <input asp-for="Input.Email" class="form__input" autocomplete="username" />
+            <span asp-validation-for="Input.Email" class="form__error"></span>
+        </div>
+        <div class="form__group">
+            <label asp-for="Input.Password" class="form__label">Password</label>
+            <input asp-for="Input.Password" type="password" class="form__input" autocomplete="current-password" />
+            <span asp-validation-for="Input.Password" class="form__error"></span>
+        </div>
+        <div class="form__group">
+            <label asp-for="Input.RememberMe" class="form__checkbox">
+                <input asp-for="Input.RememberMe" />
+                Remember me
+            </label>
+        </div>
+        <div class="form__actions">
+            <button type="submit" class="btn btn--primary btn--lg btn--block">Sign in</button>
+        </div>
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
