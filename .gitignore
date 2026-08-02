@@ -47,3 +47,22 @@ appsettings.*.local.json
 # Test / temp
 TestResults/
 scripts/login-response.json
+build/.state/**/*
+build/config/local.json
+
+# Ignore local SQLite database
+*.db
+*.db-shm
+*.db-wal
+**/bin/
+**/obj/
+*.user
+.vs/
+**/node_modules/
+**/dist/
+tests/Aganox.Rental.UITests/.auth/
+tests/Aganox.Rental.UITests/.env
+tests/Aganox.Rental.UITests/reports/
+tests/Aganox.Rental.UITests/test-results/
+tests/Aganox.Rental.UITests/playwright-report/
+tests/Aganox.Rental.UITests/blob-report/

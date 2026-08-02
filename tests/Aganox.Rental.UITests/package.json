@@ -1,0 +1,22 @@
+{
+  "name": "@aganox/rental-ui-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end UI automation tests for Aganox Rental",
+  "scripts": {
+    "test": "playwright test",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report reports/html",
+    "codegen": "playwright codegen http://localhost:4200"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.15.21",
+    "dotenv": "^16.5.0",
+    "typescript": "^5.8.3"
+  }
+}

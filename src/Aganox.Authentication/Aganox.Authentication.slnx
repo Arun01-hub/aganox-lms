@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Aganox.IdentityServer/">
+    <Project Path="Aganox.IdentityServer/Aganox.IdentityServer.csproj" />
+    <Project Path="Aganox.IdentityServer.Domain/Aganox.IdentityServer.Domain.csproj" />
+    <Project Path="Aganox.IdentityServer.Application/Aganox.IdentityServer.Application.csproj" />
+    <Project Path="Aganox.IdentityServer.Infrastructure/Aganox.IdentityServer.Infrastructure.csproj" />
+  </Folder>
+</Solution>

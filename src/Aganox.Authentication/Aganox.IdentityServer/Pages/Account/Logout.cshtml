@@ -1,0 +1,27 @@
+@page
+@model Aganox.IdentityServer.Pages.Account.LogoutModel
+@{
+    ViewData["Title"] = "Sign out";
+}
+
+<section class="card text-center" aria-labelledby="logout-heading">
+    @if (Model.RequiresOidcSignOut)
+    {
+        <h1 id="logout-heading" class="card__title">Sign out of Aganox</h1>
+        <p class="card__lead">Confirm sign-out to return to your application.</p>
+
+        <form method="post" action="/connect/logout@HttpContext.Request.QueryString" class="form">
+            @Html.AntiForgeryToken()
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary btn--lg btn--block">Sign out</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="status-icon status-icon--success" aria-hidden="true">&#10003;</div>
+        <h1 id="logout-heading" class="card__title">Signed out</h1>
+        <p class="card__lead">You have been securely signed out of your Aganox account.</p>
+        <a href="@Model.ReturnToApplicationUrl" class="btn btn--primary btn--lg btn--block mt-4">Return to application</a>
+    }
+</section>
