@@ -1,12 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   template: `
     <section class="auth-panel shadow-sm">
       <h1 class="h3 brand-mark mb-1">Aganox LMS</h1>
@@ -35,6 +35,9 @@ import { AuthService } from '../../core/auth.service';
         <button class="btn btn-aganox w-100" type="submit" [disabled]="form.invalid || loading()">
           {{ loading() ? 'Signing in…' : 'Sign in' }}
         </button>
+        <div class="text-center mt-3">
+          <a routerLink="/forgot-password" class="small">Forgot password?</a>
+        </div>
       </form>
     </section>
   `
@@ -61,9 +64,9 @@ export class LoginComponent {
     this.error.set(null);
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
-      next: () => {
+      next: (response) => {
         this.loading.set(false);
-        void this.router.navigateByUrl('/');
+        void this.router.navigateByUrl(response.user.mustChangePassword ? '/change-password' : '/');
       },
       error: () => {
         this.loading.set(false);

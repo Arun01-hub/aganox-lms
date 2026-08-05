@@ -1,7 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\Aganox.IdentityServer.Domain\Aganox.IdentityServer.Domain.csproj" />
-  </ItemGroup>
-
-</Project>

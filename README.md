@@ -1,104 +1,117 @@
 # Aganox LMS
 
-Enterprise Leave Management System (ASP.NET Core 8 + Angular 18).
+Enterprise Leave Management System — ASP.NET Core + Angular.
 
-## Phase 1 status
+## Status
 
-Foundation is implemented:
+Phases 1–8 implemented:
 
-- Clean Architecture solution under `src/backend`
-- JWT auth (login, refresh, logout, me, change/forgot/reset password)
-- EF Core SQL Server schema + `InitialCreate` migration + seed data
-- Angular auth shell + dashboard
-- Docker Compose (optional SQL + API)
+- Foundation, organization, leave config, requests & balances
+- Approval workflow & notifications
+- Dashboards & reports
+- Admin, audit, backup
+- **Hardening, publish scripts, Inno Setup installer, documentation, CI**
 
 ## Prerequisites
 
-- .NET 8 SDK
+- .NET 10 SDK
 - SQL Server LocalDB (default) or SQL Server Express
-- Node.js 18+ (20 LTS recommended) for the Angular app
+- Node.js 20 LTS for the Angular app
+- [Inno Setup 6](https://jrsoftware.org/isinfo.php) (optional, for building the installer)
 
-If LocalDB fails to start with missing `model.mdf` / `MSDBData.mdf` paths, recreate the instance:
-
-```powershell
-sqllocaldb stop MSSQLLocalDB
-sqllocaldb delete MSSQLLocalDB
-sqllocaldb create MSSQLLocalDB
-sqllocaldb start MSSQLLocalDB
-```
+If LocalDB fails to start, run `.\scripts\repair-localdb.ps1`.
 
 ## Default admin (seeded)
 
-- Email: `admin@aganox.local`
-- Password: `ChangeMe!123`
-- `MustChangePassword` is set to `true`
+| | |
+|---|---|
+| Email | `admin@aganox.local` |
+| Password | `ChangeMe!123` |
+| Note | Must change password on first login |
+
+## Quick start (development)
+
+```powershell
+.\scripts\check-prerequisites.ps1
+.\scripts\build.ps1
+.\scripts\run-api.ps1      # terminal 1
+.\scripts\run-web.ps1      # terminal 2
+```
+
+- API Swagger: HTTPS URL from launch settings (e.g. `https://localhost:7277/swagger`)
+- UI: `http://localhost:4200` (proxies `/api` to the API)
+
+## Production publish
+
+```powershell
+.\scripts\publish-win-x64.ps1 -Configuration Release
+# Output: artifacts/publish/win-x64/
+# Run: artifacts/publish/win-x64/Start-AganoxLms.cmd
+```
+
+Build installer:
+
+```powershell
+.\scripts\build-installer.ps1
+# Output: artifacts/installer/AganoxLms-Setup-1.0.0-x64.exe
+```
+
+**Production requires** `Jwt__Key` (32+ character secret). See [Deployment Guide](docs/deployment/README.md).
 
 ## Scripts
 
-From the repo root (`C:\Aganox`):
-
 | Script | Purpose |
 |--------|---------|
-| `.\scripts\check-prerequisites.ps1` | Verify .NET 8, Node 18+, LocalDB, HTTPS cert |
-| `.\scripts\build.ps1` | Build backend + frontend |
-| `.\scripts\build-backend.ps1` | Build .NET solution only |
-| `.\scripts\build-frontend.ps1` | Build Angular app only |
-| `.\scripts\run-api.ps1` | Check prereqs, build, start API (HTTPS) |
-| `.\scripts\run-web.ps1` | Check prereqs, start Angular dev server |
-| `.\scripts\test.ps1` | Run unit tests |
-| `.\scripts\repair-localdb.ps1` | Recreate broken LocalDB instance |
+| `check-prerequisites.ps1` | Verify .NET, Node, LocalDB |
+| `build.ps1` | Build backend + frontend |
+| `test.ps1` | Run all .NET tests |
+| `publish-win-x64.ps1` | Self-contained x64 publish (API + SPA) |
+| `publish-win-x86.ps1` | Self-contained x86 publish |
+| `build-installer.ps1` | Publish + Inno Setup installer |
+| `backup-db.ps1` | SQL Server `.bak` via sqlcmd |
+| `repair-localdb.ps1` | Recreate broken LocalDB |
+
+## Documentation
+
+| Doc | Audience |
+|-----|----------|
+| [Deployment Guide](docs/deployment/README.md) | IT / install & upgrade |
+| [Administrator Guide](docs/admin-guide/README.md) | HR / system admins |
+| [User Manual](docs/user-manual/README.md) | Employees & managers |
+| [Future Enhancements](docs/future-enhancements.md) | AD/SSO, cloud, roadmap |
+| [Design docs](docs/design/) | Architecture, API, roadmap |
+
+## Tests & CI
 
 ```powershell
-# Check everything
-.\scripts\check-prerequisites.ps1
-
-# Build all
-.\scripts\build.ps1
-
-# Run (two terminals)
-.\scripts\run-api.ps1
-.\scripts\run-web.ps1
+.\scripts\test.ps1 -Configuration Release
 ```
 
-## Run API (manual)
+GitHub Actions workflow: `.github/workflows/ci.yml` (build, test, publish smoke on Windows).
 
-```powershell
-cd src/backend/Aganox.Lms.Api
-dotnet run
-```
-
-- Swagger: use the HTTPS URL from launchSettings (typically `https://localhost:7xxx/swagger`)
-- Health: `GET /health`
-
-On startup the API applies migrations and seeds roles, leave types, calendar, and the admin user.
-
-## Run Angular UI (manual)
-
-```powershell
-cd src/frontend/aganox-lms-web
-npm install
-npm start
-```
-
-UI proxies `/api` to the API (see `proxy.conf.json`). Update the target port if your API HTTPS port differs.
-
-## Smoke test (login)
-
-```powershell
-curl -k -X POST https://localhost:<api-port>/api/v1/auth/login `
-  -H "Content-Type: application/json" `
-  -d "{\"email\":\"admin@aganox.local\",\"password\":\"ChangeMe!123\"}"
-```
-
-## Docker (optional)
+## Docker (optional dev)
 
 ```powershell
 cd docker
 docker compose up --build
 ```
 
-API: `http://localhost:8080` (SQL SA password is in `docker-compose.yml` for local/dev only).
-
 ## Solution layout
 
-See `docs/design/` for architecture, ER, API, and roadmap.
+```
+src/backend/          # .NET Clean Architecture API
+src/frontend/         # Angular SPA
+src/installer/        # Inno Setup script
+scripts/              # Build, publish, backup
+docs/                 # Deployment, admin, user guides
+tests/                # Domain, application, API integration tests
+```
+
+## Related Aganox repositories
+
+This repo contains **Aganox LMS only**. Other products live in separate repositories:
+
+| Repository | Product |
+|------------|---------|
+| [Aganox-Identity](../Aganox-Identity) | OpenIddict authentication server |
+| [Aganox-Rental](../Aganox-Rental) | Property rental API + SPA (uses Identity) |

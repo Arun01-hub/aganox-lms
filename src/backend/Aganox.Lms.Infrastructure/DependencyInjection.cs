@@ -1,11 +1,17 @@
 using System.Text;
 using Aganox.Lms.Application.Common.Interfaces;
+using Aganox.Lms.Application.Features.Notifications;
+using Aganox.Lms.Domain.Constants;
+using Aganox.Lms.Infrastructure.Admin;
 using Aganox.Lms.Infrastructure.Auth;
+using Aganox.Lms.Infrastructure.Authorization;
 using Aganox.Lms.Infrastructure.Email;
 using Aganox.Lms.Infrastructure.Identity;
+using Aganox.Lms.Infrastructure.Notifications;
 using Aganox.Lms.Persistence.Context;
 using Aganox.Lms.Persistence.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +30,13 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IEmailSender, LoggingEmailSender>();
+        services.AddScoped<INotificationQueueService, NotificationQueueService>();
+        services.AddScoped<LeaveNotificationService>();
+        services.AddScoped<IActivityLogger, ActivityLogger>();
+        services.AddScoped<IDatabaseBackupService, SqlServerBackupService>();
+        services.AddHostedService<NotificationDispatchHostedService>();
+        services.AddHostedService<PendingApprovalReminderHostedService>();
+        services.AddHostedService<ScheduledBackupHostedService>();
 
         services
             .AddIdentityCore<ApplicationUser>(options =>
@@ -61,7 +74,15 @@ public static class DependencyInjection
                 };
             });
 
-        services.AddAuthorization();
+        services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddAuthorization(options =>
+        {
+            foreach (var permission in Permissions.All)
+            {
+                options.AddPolicy(permission, policy =>
+                    policy.Requirements.Add(new PermissionRequirement(permission)));
+            }
+        });
         return services;
     }
 }

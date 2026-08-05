@@ -37,7 +37,7 @@ function Test-DotNet8Sdk {
     }
 
     if ($version.Major -gt 8) {
-        $Warnings.Value += ".NET SDK $($version.ToString()) detected (project targets net8.0, SDK 8.x recommended)."
+        $Warnings.Value += ".NET SDK $($version.ToString()) detected (project targets net10.0, SDK 10.x recommended)."
     }
 
     Write-Host "  [OK] .NET SDK $($version.ToString())" -ForegroundColor Green
@@ -75,6 +75,37 @@ function Test-NodeJs {
     $npmVersion = (cmd /c "npm --version 2>nul") -replace '\r',''
     Write-Host "  [OK] Node.js v$nodeVersionRaw (npm $npmVersion)" -ForegroundColor Green
     return $true
+}
+
+function Test-VcRedist {
+    param(
+        [ref]$Issues,
+        [ref]$Warnings,
+        [switch]$Required
+    )
+
+    $keys = @(
+        "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+    )
+
+    foreach ($key in $keys) {
+        $installed = Get-ItemProperty -Path $key -Name Installed -ErrorAction SilentlyContinue
+        if ($installed -and $installed.Installed -eq 1) {
+            $version = (Get-ItemProperty -Path $key -Name Version -ErrorAction SilentlyContinue).Version
+            Write-Host "  [OK] Visual C++ Redistributable x64 ($version)" -ForegroundColor Green
+            return $true
+        }
+    }
+
+    $message = "Visual C++ 2015-2022 Redistributable (x64) not found. Required for SQL Server LocalDB."
+    if ($Required) {
+        $Issues.Value += $message
+    } else {
+        $Warnings.Value += $message
+        Write-Host "  [WARN] Visual C++ Redistributable x64 missing" -ForegroundColor Yellow
+    }
+    return $false
 }
 
 function Test-SqlLocalDb {
@@ -146,6 +177,7 @@ function Invoke-PrerequisiteCheck {
         Write-Host "Backend:" -ForegroundColor White
         [void](Test-DotNet8Sdk -Issues ([ref]$issues) -Warnings ([ref]$warnings))
         if ($Mode -in @("RunApi", "All")) {
+            [void](Test-VcRedist -Issues ([ref]$issues) -Warnings ([ref]$warnings))
             [void](Test-SqlLocalDb -Issues ([ref]$issues) -Warnings ([ref]$warnings))
             [void](Test-DevHttpsCert -Warnings ([ref]$warnings))
         }

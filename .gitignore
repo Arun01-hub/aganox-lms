@@ -44,11 +44,16 @@ appsettings.*.local.json
 .env
 .env.*
 
+# Installer prerequisites (downloaded at build time)
+src/installer/prerequisites/SqlLocalDB.msi
+src/installer/prerequisites/vc_redist.x64.exe
+
+# Generated SPA output (created by publish-win.ps1)
+src/backend/Aganox.Lms.Api/wwwroot/
+
 # Test / temp
 TestResults/
 scripts/login-response.json
-build/.state/**/*
-build/config/local.json
 
 # Ignore local SQLite database
 *.db
@@ -60,9 +65,3 @@ build/config/local.json
 .vs/
 **/node_modules/
 **/dist/
-tests/Aganox.Rental.UITests/.auth/
-tests/Aganox.Rental.UITests/.env
-tests/Aganox.Rental.UITests/reports/
-tests/Aganox.Rental.UITests/test-results/
-tests/Aganox.Rental.UITests/playwright-report/
-tests/Aganox.Rental.UITests/blob-report/

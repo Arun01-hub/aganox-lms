@@ -88,7 +88,53 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             }
         }
 
+        AppendAuditLogs(utcNow);
+
         return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void AppendAuditLogs(DateTime utcNow)
+    {
+        var userId = _currentUser?.UserId;
+        var entries = ChangeTracker.Entries().ToList();
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is AuditLog or ActivityLog or BackupHistory)
+            {
+                continue;
+            }
+
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            {
+                continue;
+            }
+
+            var entityName = entry.Metadata.ClrType.Name;
+            var idProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
+            if (idProp?.CurrentValue is null)
+            {
+                continue;
+            }
+
+            var entityId = idProp.CurrentValue.ToString() ?? string.Empty;
+            var action = entry.State switch
+            {
+                EntityState.Added => "Created",
+                EntityState.Deleted => "Deleted",
+                _ when entry.Entity is SoftDeletableEntity soft && soft.IsDeleted => "Deleted",
+                _ => "Updated"
+            };
+
+            AuditLogs.Add(new AuditLog
+            {
+                EntityName = entityName,
+                EntityId = entityId,
+                Action = action,
+                UserId = userId,
+                Timestamp = utcNow,
+                NewValues = entry.State == EntityState.Added ? "Added" : null
+            });
+        }
     }
 
     private static void ApplySoftDeleteFilter<TEntity>(ModelBuilder builder)

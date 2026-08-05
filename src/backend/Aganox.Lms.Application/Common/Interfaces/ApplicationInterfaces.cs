@@ -49,6 +49,17 @@ public interface IEmailSender
     Task SendAsync(string to, string subject, string body, CancellationToken cancellationToken = default);
 }
 
+public interface INotificationQueueService
+{
+    Task QueueEmailAsync(
+        Guid userId,
+        string templateKey,
+        string subject,
+        string body,
+        Guid? relatedEntityId = null,
+        CancellationToken cancellationToken = default);
+}
+
 public interface IJwtTokenService
 {
     string CreateAccessToken(Guid userId, string email, IEnumerable<string> roles, IEnumerable<string> permissions, out DateTime expiresAt);
@@ -65,7 +76,35 @@ public interface IIdentityService
     Task<IReadOnlyList<string>> GetRolesAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetPermissionsAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<AuthUserDto?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<(bool Succeeded, Guid? UserId, string[] Errors)> CreateUserForEmployeeAsync(
+        Guid employeeId,
+        string email,
+        string password,
+        string role,
+        CancellationToken cancellationToken = default);
+
+    Task<(bool Succeeded, string[] Errors)> LinkExistingUserAsync(
+        Guid employeeId,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<string?> GetUserEmailAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Guid>> GetUserIdsInRoleAsync(string role, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RolePermissionsDto>> GetRolesWithPermissionsAsync(CancellationToken cancellationToken = default);
+
+    Task<(bool Succeeded, string[] Errors)> SetRolePermissionsAsync(
+        Guid roleId,
+        IReadOnlyList<string> permissions,
+        CancellationToken cancellationToken = default);
 }
+
+public sealed record RolePermissionsDto(
+    Guid RoleId,
+    string RoleName,
+    string? Description,
+    IReadOnlyList<string> Permissions);
 
 public sealed record AuthUserDto(
     Guid Id,

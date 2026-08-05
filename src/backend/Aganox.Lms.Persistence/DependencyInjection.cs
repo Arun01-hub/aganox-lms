@@ -13,8 +13,19 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Server=(localdb)\\mssqllocaldb;Database=AganoxLms;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 
+        var useInMemory = configuration.GetValue<bool>("UseInMemoryDatabase");
+
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        {
+            if (useInMemory)
+            {
+                options.UseInMemoryDatabase("AganoxLmsTests");
+            }
+            else
+            {
+                options.UseSqlServer(connectionString);
+            }
+        });
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 

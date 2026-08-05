@@ -39,6 +39,14 @@ export class AuthService {
     return !!this.accessToken;
   }
 
+  hasPermission(permission: string): boolean {
+    return this.user()?.permissions.includes(permission) ?? false;
+  }
+
+  hasRole(role: string): boolean {
+    return this.user()?.roles.includes(role) ?? false;
+  }
+
   login(email: string, password: string) {
     return this.http
       .post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, { email, password })
@@ -48,6 +56,18 @@ export class AuthService {
           this.user.set(response.user);
         })
       );
+  }
+
+  forgotPassword(email: string) {
+    return this.http.post<void>(`${environment.apiBaseUrl}/auth/forgot-password`, { email });
+  }
+
+  resetPassword(email: string, token: string, newPassword: string) {
+    return this.http.post<void>(`${environment.apiBaseUrl}/auth/reset-password`, { email, token, newPassword });
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.http.post<void>(`${environment.apiBaseUrl}/auth/change-password`, { currentPassword, newPassword });
   }
 
   logout(): void {
