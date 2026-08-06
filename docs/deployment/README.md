@@ -1,186 +1,200 @@
 # Aganox LMS — Deployment Guide
 
 **Version:** 1.0  
-**Audience:** IT administrators deploying on Windows 10/11
+**Audience:** IT administrators deploying on Windows Server / Windows 10/11
 
 ---
 
 ## 1. Overview
 
-Aganox LMS ships as a **self-contained** Windows package (no separate .NET runtime install required). The API hosts both the REST API and the Angular UI from `wwwroot`.
+Aganox LMS ships as a **self-contained** Windows x64 package. The installer:
+
+- Installs the API + Angular UI under `Program Files\Aganox\LMS`
+- Writes runtime config to `ProgramData\Aganox\LMS`
+- Registers a **Windows Service** (`AganoxLmsApi`, automatic start)
+- Configures SQL Server Express or full SQL Server (not LocalDB)
 
 | Component | Requirement |
 |-----------|-------------|
-| OS | Windows 10/11 (x64 or x86) |
-| Runtime | Visual C++ 2015–2022 Redistributable (x64) — installed automatically by setup |
-| Database | SQL Server LocalDB, Express, or full SQL Server |
-| RAM | 2 GB minimum (4 GB recommended) |
+| OS | Windows 10/11 or Windows Server 2019+ (x64) |
+| Runtime | Self-contained .NET (no separate runtime install) |
+| Database | **SQL Server Express** (optional install via setup) or existing SQL Server |
+| RAM | 4 GB recommended |
 | Disk | ~500 MB install + database/logs |
 
 ---
 
 ## 2. Quick install (installer)
 
-1. Build or obtain `AganoxLms-Setup-1.0.0-x64.exe` from `artifacts/installer/` (see [Build from source](#4-build-from-source)).
-2. Run the installer (administrator rights required).
-3. Launch **Aganox LMS** from the Start menu or desktop shortcut.
-4. Browser opens **`http://localhost:8080`** (HTTP — no TLS certificate setup required for local SME installs).
-5. Log in with the seeded admin account and change the password when prompted.
+### Wizard behavior
 
-> **Note:** The installer automatically installs **Visual C++ Redistributable (x64)** and **SQL Server LocalDB** when missing. VC++ is installed before LocalDB.
+Setup **detects existing SQL Server instances** in the registry:
 
-> **Note:** The launcher auto-creates `appsettings.Local.json` with a secure JWT key on first run. Keep the **Start Aganox LMS** console window open while using the app.
+| Machine state | Default wizard behavior |
+|---------------|-------------------------|
+| **No SQL instance found** | Offers to **install SQL Server 2022 Express** (`SQLEXPRESS`) — selected by default. Requires internet during setup to download engine files. |
+| **Existing instance found** | Skips Express install; pre-fills the best detected instance (`.\SQLEXPRESS`, then default instance `.`, then first found). **Create AganoxLms database** is checked by default. |
 
-### Silent install
+### Run setup
+
+1. Build or obtain `AganoxLms-Setup-1.0.0-x64.exe` from `artifacts/installer/`.
+2. Run the installer **as Administrator**.
+3. Follow the wizard:
+   - **SQL Server setup** page (only when no instance exists): install Express or skip.
+   - **Database and service** page: confirm instance, database name (`AganoxLms`), port (`8080`), service account (`LocalSystem`).
+   - **Tasks**: create database (default on), firewall rule (default on).
+4. Setup installs SQL Express if chosen, writes config, creates the Windows Service, runs migrations/seed, and verifies `/health`.
+5. Open **`http://localhost:8080`** (or `http://<server-name>:8080` from other PCs on the LAN).
+6. Log in with the seeded admin account and change the password when prompted.
+
+> **Config location:** `C:\ProgramData\Aganox\LMS\appsettings.Production.json`  
+> **Logs:** `C:\ProgramData\Aganox\LMS\logs\` and `{app}\logs\installer\`
+
+### Silent install (SCCM / Intune)
 
 ```cmd
-AganoxLms-Setup-1.0.0-x64.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+REM Clean machine — install Express + create database (defaults when no SQL found)
+AganoxLms-Setup-1.0.0-x64.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /InstallSqlExpress=1
+
+REM Existing SQL instance — use detected/custom server, create database
+AganoxLms-Setup-1.0.0-x64.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART ^
+  /InstallSqlExpress=0 /SqlServer=".\SQLEXPRESS" /SqlDatabase="AganoxLms" /Port=8080
 ```
+
+Optional Inno tasks: `/TASKS=createdatabase,firewall`
 
 Install logs:
 
 - `%TEMP%\Setup Log*.txt` (Inno Setup session log)
-- `{app}\logs\installer\` — persisted copies including `Setup.log`, `VcRedist-Install.log`, `SqlLocalDB-Install.log`, and `install-summary.txt` (written even when prerequisite install fails)
+- `{app}\logs\installer\` — `Setup.log`, `Install-SqlExpress.log`, `Configure-Server.log`, and `install-summary.txt`
+
+Setup **aborts with a non-zero exit code** if SQL Express install, SQL connectivity, service install, or health check fails.
 
 ---
 
 ## 3. Manual / folder deploy
 
-```powershell
-# From repo root
-.\scripts\publish-win-x64.ps1 -Configuration Release
-```
-
-Output: `artifacts/publish/win-x64/`
-
-1. Copy the folder to the target machine (e.g. `C:\Program Files\Aganox\LMS`).
-2. Configure `appsettings.Production.json` (see [Configuration](#5-configuration)).
-3. Set environment variables (recommended for secrets):
+For advanced scenarios, publish the server package and configure manually:
 
 ```powershell
-$env:ASPNETCORE_ENVIRONMENT = "Production"
-$env:Jwt__Key = "<64-char-random-secret>"
-$env:ConnectionStrings__DefaultConnection = "Server=(localdb)\mssqllocaldb;Database=AganoxLms;Trusted_Connection=True;TrustServerCertificate=True"
+.\scripts\publish-server.ps1 -Configuration Release
 ```
 
-4. Run `Start-AganoxLms.cmd` or `Aganox.Lms.Api.exe`.
+Output: `artifacts/publish/server-x64/`
 
-On first start the application **applies EF migrations** and **seeds** roles, leave types, calendar, and the default admin user.
+```powershell
+cd artifacts\publish\server-x64
+.\tools\Configure-Server.ps1 -InstallDir . -SqlServer ".\SQLEXPRESS" -SqlDatabase AganoxLms -Port 8080 -CreateDatabase
+```
 
 ---
 
-## 4. Build from source
+## 4. Development console publish (optional)
+
+For local testing without the Windows Service:
+
+```powershell
+.\scripts\publish-win-x64.ps1 -Configuration Release
+.\artifacts\publish\win-x64\Start-AganoxLms.cmd
+```
+
+Uses LocalDB-friendly defaults via `appsettings.Local.json` on first run. **Not used by the enterprise installer.**
+
+---
+
+## 5. Build from source
 
 | Step | Command |
 |------|---------|
 | Prerequisites | `.\scripts\check-prerequisites.ps1` |
 | Full build | `.\scripts\build.ps1 -Configuration Release` |
 | Tests | `.\scripts\test.ps1 -Configuration Release` |
-| Publish x64 | `.\scripts\publish-win-x64.ps1` |
-| Publish x86 | `.\scripts\publish-win-x86.ps1` |
+| Server publish | `.\scripts\publish-server.ps1` |
 | Installer | `.\scripts\build-installer.ps1` (requires [Inno Setup 6](https://jrsoftware.org/isinfo.php)) |
 
 ---
 
-## 5. Configuration
+## 6. Configuration
 
 ### Connection string
 
-Edit `appsettings.Production.json` or use environment variable `ConnectionStrings__DefaultConnection`.
+Production config is written to:
 
-**LocalDB (default SME):**
+```
+C:\ProgramData\Aganox\LMS\appsettings.Production.json
+```
+
+**SQL Server Express (default):**
+
+```
+Server=.\SQLEXPRESS;Database=AganoxLms;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True
+```
+
+**LocalDB (development only):**
 
 ```
 Server=(localdb)\mssqllocaldb;Database=AganoxLms;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True
 ```
 
-**SQL Server Express (named instance):**
+### JWT secret
 
-```
-Server=.\SQLEXPRESS;Database=AganoxLms;Trusted_Connection=True;TrustServerCertificate=True
-```
+Generated automatically during install into ProgramData config. To rotate manually, edit `Jwt:Key` (32+ characters) and restart the `AganoxLmsApi` service.
 
-### JWT secret (required in Production)
+### URLs and service
 
-Production **will not start** without a secure `Jwt:Key` (32+ characters, not a dev placeholder).
+The Windows Service listens on `http://+:<port>` (all interfaces). Default port `8080`. Change via reinstall or edit `Urls` in ProgramData config and restart the service.
 
-Set via environment variable:
-
-```
-Jwt__Key=<your-long-random-secret>
-```
-
-Generate one:
-
-```powershell
-[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
-```
-
-### URLs
-
-Default in `Start-AganoxLms.cmd` / `Start-AganoxLms.ps1`:
-
-```
-http://localhost:8080
-```
-
-The launcher waits for `/health` to respond before opening the browser.
-
-For HTTPS (optional, e.g. behind IIS or with a proper certificate):
-
-```
-ASPNETCORE_URLS=https://localhost:8443;http://localhost:8080
-Jwt__Key=<your-secret>   # or use appsettings.Local.json
-dotnet dev-certs https --trust
-```
+For HTTPS, place IIS or a reverse proxy in front of the service (see [Security checklist](#10-security-checklist)).
 
 ---
 
-## 6. Database backup (script)
+## 7. Database backup
 
 ```powershell
 .\scripts\backup-db.ps1 -OutputFolder "D:\Backups\AganoxLms"
 ```
 
-In-app backup/restore is also available under **Admin → Backup** (Administrator role).
+In-app backup/restore: **Admin → Backup** (Administrator role).
 
 ---
 
-## 7. Upgrades
+## 8. Upgrades
 
-1. Stop the running application.
-2. Back up the database (`backup-db.ps1` or Admin UI).
-3. Run the new installer (same `AppId` — upgrades in place) or replace the publish folder.
-4. Start the application — migrations run automatically on startup.
-
----
-
-## 8. Uninstall
-
-- **Installer:** Settings → Apps → Aganox LMS → Uninstall, or Start menu → Uninstall Aganox LMS.
-- **Manual:** Stop the process, delete the install folder. The database is **not** removed automatically — drop it in SQL Server if no longer needed.
+1. Stop the service: `Stop-Service AganoxLmsApi`
+2. Back up the database.
+3. Run the new installer (same `AppId` — upgrades in place). ProgramData config is preserved.
+4. Service restarts automatically; migrations run on startup.
 
 ---
 
-## 9. Troubleshooting
+## 9. Uninstall
+
+- **Installer:** Settings → Apps → Aganox LMS → Uninstall (stops and removes the Windows Service).
+- **Manual:** `Stop-Service AganoxLmsApi`, run `tools\Uninstall-Service.ps1`, delete the install folder.
+- Database and `ProgramData\Aganox\LMS` are **not** removed automatically.
+
+---
+
+## 10. Troubleshooting
 
 | Issue | Action |
 |-------|--------|
-| LocalDB missing/corrupt | `.\scripts\repair-localdb.ps1` |
-| Production startup: JWT error | Set `Jwt__Key` (32+ chars) |
-| 500 on first request | Check `logs/aganox-lms-*.log`; verify SQL Server is running |
-| Blank UI | Confirm `wwwroot/index.html` exists next to the exe |
-| Health check | `GET /health` should return Healthy |
+| Setup fails on SQL | Verify SQL Express is running; test with SSMS using the same instance name |
+| Service won't start | Check `C:\ProgramData\Aganox\LMS\logs\aganox-lms-*.log` |
+| 500 on first request | Verify connection string and SQL permissions for the service account |
+| Blank UI | Confirm `wwwroot\index.html` exists next to the exe |
+| Health check | `GET http://localhost:8080/health` should return Healthy |
+| LocalDB (dev only) | `.\scripts\repair-localdb.ps1` |
 
 ---
 
-## 10. Security checklist
+## 11. Security checklist
 
 - [ ] Change default admin password immediately
-- [ ] Set a unique `Jwt__Key` per environment
-- [ ] Use HTTPS in production (IIS or reverse proxy)
-- [ ] Restrict SQL Server access to the service account
-- [ ] Schedule backups (Admin settings or `backup-db.ps1` + Task Scheduler)
+- [ ] Use a dedicated SQL login/service account in production (instead of LocalSystem) when required by policy
+- [ ] Use HTTPS via IIS or reverse proxy for remote access
+- [ ] Restrict SQL Server network access
+- [ ] Schedule backups (Admin settings or Task Scheduler)
 - [ ] Review role permissions after install (Admin → Permissions)
 
 See also [Future enhancements](../future-enhancements.md) for AD/SSO and cloud deployment options.

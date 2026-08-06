@@ -11,15 +11,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 $scriptDir = $PSScriptRoot
+. (Join-Path $scriptDir "lib\Prerequisites.ps1")
 
 Write-Host "=== Aganox LMS — full build ===" -ForegroundColor Cyan
 
-$backendArgs = @("-Configuration", $Configuration)
-$frontendArgs = @("-Configuration", $FrontendConfig)
-if ($SkipPrereqCheck) {
-    $backendArgs += "-SkipPrereqCheck"
-    $frontendArgs += "-SkipPrereqCheck"
+if (-not $SkipPrereqCheck) {
+    Invoke-PrerequisiteCheck -Mode Build -Strict
 }
+
+$backendArgs = @("-Configuration", $Configuration, "-SkipPrereqCheck")
+$frontendArgs = @("-Configuration", $FrontendConfig, "-SkipPrereqCheck")
 
 & (Join-Path $scriptDir "build-backend.ps1") @backendArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

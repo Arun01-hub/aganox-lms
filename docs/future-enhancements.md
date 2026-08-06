@@ -70,7 +70,7 @@ Current v1 targets **SQL Server** (LocalDB/Express/full) on **Windows**.
 
 | Enhancement | Description |
 |-------------|-------------|
-| **Windows Service install** | Run API as a service without logged-in user |
+| **Windows Service install** | ~~Run API as a service without logged-in user~~ (implemented in v1 server installer) |
 | **MSIX packaging** | Store-style deployment |
 | **Centralized logging** | OpenTelemetry, Application Insights, ELK |
 | **Automated E2E (Playwright)** | Full browser regression in CI |

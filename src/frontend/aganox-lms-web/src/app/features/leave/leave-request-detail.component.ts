@@ -30,7 +30,7 @@ import { LeaveRequestDetail, LeaveRequestService } from '../../core/leave-reques
             }
           </dl>
 
-          @if (item()!.approvalSteps?.length) {
+          @if (item()!.approvalSteps.length) {
             <h2 class="h6 mt-4">Approval history</h2>
             <ul class="list-group list-group-flush">
               @for (step of item()!.approvalSteps; track step.id) {
@@ -42,7 +42,7 @@ import { LeaveRequestDetail, LeaveRequestService } from '../../core/leave-reques
             </ul>
           }
 
-          @if (item()!.comments?.length) {
+          @if (item()!.comments.length) {
             <h2 class="h6 mt-4">Comments</h2>
             @for (c of item()!.comments; track c.id) {
               <div class="border rounded p-2 mb-2">

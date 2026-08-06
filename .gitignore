@@ -16,6 +16,11 @@
 [Ll]og/
 [Ll]ogs/
 
+# Compiled binaries (build output, installers, native deps)
+*.exe
+*.dll
+*.pdb
+
 # .NET
 project.lock.json
 project.fragment.lock.json
@@ -45,8 +50,10 @@ appsettings.*.local.json
 .env.*
 
 # Installer prerequisites (downloaded at build time)
-src/installer/prerequisites/SqlLocalDB.msi
-src/installer/prerequisites/vc_redist.x64.exe
+src/installer/prerequisites/
+
+# Accidental SQL Express installer extraction (not part of source)
+SQLEXPR_x64_ENU/
 
 # Generated SPA output (created by publish-win.ps1)
 src/backend/Aganox.Lms.Api/wwwroot/

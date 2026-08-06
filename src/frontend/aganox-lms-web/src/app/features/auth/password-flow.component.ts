@@ -102,7 +102,7 @@ export class ResetPasswordComponent {
 @Component({
   selector: 'app-change-password',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
   template: `
     <section class="auth-panel shadow-sm mx-auto" style="max-width:420px">
       <h1 class="h4 mb-3">Change password</h1>

@@ -1,0 +1,25 @@
+{
+  "Urls": "http://+:{PORT}",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server={SQL_SERVER};Database={SQL_DATABASE};Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+  },
+  "Jwt": {
+    "Issuer": "Aganox.Lms",
+    "Audience": "Aganox.Lms.Clients",
+    "Key": "{JWT_KEY}",
+    "AccessTokenMinutes": 60
+  },
+  "Cors": {
+    "AllowedOrigins": []
+  },
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Warning",
+      "Override": {
+        "Microsoft": "Warning",
+        "Microsoft.Hosting.Lifetime": "Information"
+      }
+    }
+  },
+  "AllowedHosts": "*"
+}

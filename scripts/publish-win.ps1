@@ -24,7 +24,7 @@ if (-not $SkipPrereqCheck) {
 }
 
 if (-not $SkipFrontend) {
-    & (Join-Path $PSScriptRoot "build-frontend.ps1") -Configuration production -SkipPrereqCheck:$SkipPrereqCheck
+    & (Join-Path $PSScriptRoot "build-frontend.ps1") -Configuration production -SkipPrereqCheck
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 

@@ -1,3 +1,4 @@
+using Aganox.Lms.Api;
 using Aganox.Lms.Api.Middleware;
 using Aganox.Lms.Application;
 using Aganox.Lms.Infrastructure;
@@ -14,6 +15,16 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    if (builder.Environment.IsProduction())
+    {
+        var programDataConfig = ServerPaths.ProductionConfigPath;
+        if (File.Exists(programDataConfig))
+        {
+            builder.Configuration.AddJsonFile(programDataConfig, optional: false, reloadOnChange: true);
+        }
+    }
+
     builder.Configuration.AddJsonFile(
         Path.Combine(builder.Environment.ContentRootPath, "appsettings.Local.json"),
         optional: true,
@@ -24,12 +35,22 @@ try
         ValidateProductionConfiguration(builder.Configuration);
     }
 
+    if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
+    {
+        builder.Host.UseWindowsService(options => options.ServiceName = ServerPaths.ServiceName);
+    }
+
+    var logDirectory = builder.Environment.IsProduction() && Directory.Exists(ServerPaths.LogsDirectory)
+        ? ServerPaths.LogsDirectory
+        : Path.Combine(builder.Environment.ContentRootPath, "logs");
+    Directory.CreateDirectory(logDirectory);
+
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
         .WriteTo.Console()
-        .WriteTo.File("logs/aganox-lms-.log", rollingInterval: RollingInterval.Day));
+        .WriteTo.File(Path.Combine(logDirectory, "aganox-lms-.log"), rollingInterval: RollingInterval.Day));
 
     builder.Services.AddApplication();
     builder.Services.AddPersistence(builder.Configuration);
@@ -171,14 +192,15 @@ static void ValidateProductionConfiguration(IConfiguration configuration)
     {
         throw new InvalidOperationException(
             "Production requires a secure Jwt:Key (32+ characters). " +
-            "Run Start-AganoxLms.cmd to auto-create appsettings.Local.json, " +
-            "or set the Jwt__Key environment variable.");
+            "Run the Aganox LMS installer configure step, set Jwt__Key, " +
+            $"or create {ServerPaths.ProductionConfigPath}.");
     }
 }
 
 static bool IsHttpsEnabled(IConfiguration configuration)
 {
-    var urls = configuration["ASPNETCORE_URLS"]
+    var urls = configuration["Urls"]
+        ?? configuration["ASPNETCORE_URLS"]
         ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
         ?? string.Empty;
     return urls.Contains("https://", StringComparison.OrdinalIgnoreCase);

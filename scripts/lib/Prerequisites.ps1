@@ -48,11 +48,11 @@ function Test-NodeJs {
     param(
         [ref]$Issues,
         [ref]$Warnings,
-        [int]$MinimumMajor = 18
+        [int]$MinimumMajor = 22
     )
 
     if (-not (Test-CommandExists "node")) {
-        $Issues.Value += "Node.js not found. Install Node.js 18+ LTS: https://nodejs.org/"
+        $Issues.Value += "Node.js not found. Install Node.js 22+ LTS: https://nodejs.org/"
         return $false
     }
 
@@ -68,8 +68,22 @@ function Test-NodeJs {
         return $false
     }
 
-    if ($nodeVersion.Major -ge 23) {
-        $Warnings.Value += "Node.js v$nodeVersionRaw is newer than Angular 18 officially supports, build may still work."
+    if ($nodeVersion.Major -eq 22 -and $nodeVersion -lt [version]"22.22.3") {
+        $Issues.Value += "Angular CLI 22 requires Node.js 22.22.3+ (found v$nodeVersionRaw)."
+        return $false
+    }
+
+    if ($nodeVersion.Major -eq 24 -and $nodeVersion -lt [version]"24.15.0") {
+        $Issues.Value += "Angular CLI 22 requires Node.js 24.15.0+ (found v$nodeVersionRaw)."
+        return $false
+    }
+
+    if ($nodeVersion.Major -ge 23 -and $nodeVersion.Major -lt 24) {
+        $Warnings.Value += "Node.js v$nodeVersionRaw is not in an Angular CLI 22 supported line (use 22.22+, 24.15+, or 26+)."
+    }
+
+    if ($nodeVersion.Major -ge 25 -and $nodeVersion.Major -lt 26) {
+        $Warnings.Value += "Node.js v$nodeVersionRaw is not in an Angular CLI 22 supported line (use 22.22+, 24.15+, or 26+)."
     }
 
     $npmVersion = (cmd /c "npm --version 2>nul") -replace '\r',''
