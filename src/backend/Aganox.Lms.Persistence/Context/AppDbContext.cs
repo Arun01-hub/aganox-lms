@@ -1,7 +1,10 @@
 using Aganox.Lms.Application.Common.Interfaces;
+using Aganox.Lms.Domain.Entities.Attendance;
 using Aganox.Lms.Domain.Entities.Common;
+using Aganox.Lms.Domain.Entities.Extensibility;
 using Aganox.Lms.Domain.Entities.Leave;
 using Aganox.Lms.Domain.Entities.Organization;
+using Aganox.Lms.Domain.Entities.Payroll;
 using Aganox.Lms.Domain.Entities.System;
 using Aganox.Lms.Persistence.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -41,6 +44,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<BackupHistory> BackupHistories => Set<BackupHistory>();
+    public DbSet<NavigationMenuItem> NavigationMenuItems => Set<NavigationMenuItem>();
+    public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
+    public DbSet<CustomFieldValue> CustomFieldValues => Set<CustomFieldValue>();
+    public DbSet<AttendanceDay> AttendanceDays => Set<AttendanceDay>();
+    public DbSet<SalaryComponent> SalaryComponents => Set<SalaryComponent>();
+    public DbSet<SalaryRule> SalaryRules => Set<SalaryRule>();
+    public DbSet<EmployeeSalaryRevision> EmployeeSalaryRevisions => Set<EmployeeSalaryRevision>();
+    public DbSet<EmployeeSalaryComponentOverride> EmployeeSalaryComponentOverrides => Set<EmployeeSalaryComponentOverride>();
+    public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
+    public DbSet<PayrollEmployeeResult> PayrollEmployeeResults => Set<PayrollEmployeeResult>();
+    public DbSet<PayrollLineItem> PayrollLineItems => Set<PayrollLineItem>();
+    public DbSet<PayrollArrear> PayrollArrears => Set<PayrollArrear>();
+    public DbSet<PayrollRunAudit> PayrollRunAudits => Set<PayrollRunAudit>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -56,6 +72,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         ApplySoftDeleteFilter<LeaveBalance>(builder);
         ApplySoftDeleteFilter<LeaveRequest>(builder);
         ApplySoftDeleteFilter<NotificationTemplate>(builder);
+        ApplySoftDeleteFilter<CustomFieldDefinition>(builder);
+        ApplySoftDeleteFilter<SalaryComponent>(builder);
+        ApplySoftDeleteFilter<SalaryRule>(builder);
+        ApplySoftDeleteFilter<EmployeeSalaryRevision>(builder);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

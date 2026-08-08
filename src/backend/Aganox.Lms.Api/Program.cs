@@ -7,6 +7,7 @@ using Aganox.Lms.Persistence.Seed;
 using Asp.Versioning;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using System.Text.Json.Serialization;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -56,7 +57,11 @@ try
     builder.Services.AddPersistence(builder.Configuration);
     builder.Services.AddInfrastructure(builder.Configuration);
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
     builder.Services.AddHealthChecks()
         .AddDbContextCheck<Aganox.Lms.Persistence.Context.AppDbContext>();
 

@@ -1,34 +1,36 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from '@ngx-translate/core';
 import { Holiday, LeaveCalendar, LeaveConfigService } from '../../core/leave-config.service';
+import { LocalizedDatePipe } from '../../core/localized-date.pipe';
 
 @Component({
   selector: 'app-leave-holidays',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TranslatePipe, LocalizedDatePipe],
   template: `
     <div class="d-flex align-items-center mb-4 gap-2 flex-wrap">
-      <h1 class="h4 mb-0">Calendars & holidays</h1>
-      <a routerLink="/leave/types" class="btn btn-sm btn-outline-secondary ms-auto">Leave types</a>
+      <h1 class="h4 mb-0">{{ 'leave.calendarsTitle' | translate }}</h1>
+      <a routerLink="/leave/types" class="btn btn-sm btn-outline-secondary ms-auto">{{ 'leave.typesTitle' | translate }}</a>
     </div>
 
     <div class="row g-3">
       <div class="col-lg-4">
         <div class="card border-0 shadow-sm">
           <div class="card-body">
-            <h2 class="h6">Calendars</h2>
+            <h2 class="h6">{{ 'leave.calendars' | translate }}</h2>
             <ul class="list-group list-group-flush">
               @for (c of calendars(); track c.id) {
                 <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
                   <button class="btn btn-link p-0" type="button" (click)="selectCalendar(c.id)">{{ c.name }}</button>
-                  @if (c.isDefault) { <span class="badge text-bg-primary">Default</span> }
+                  @if (c.isDefault) { <span class="badge text-bg-primary">{{ 'common.default' | translate }}</span> }
                 </li>
               }
             </ul>
             <div class="mt-3 d-flex gap-2">
-              <input class="form-control form-control-sm" [(ngModel)]="newCalendarName" placeholder="New calendar" />
-              <button class="btn btn-sm btn-aganox" type="button" (click)="addCalendar()">Add</button>
+              <input class="form-control form-control-sm" [(ngModel)]="newCalendarName" [placeholder]="'leave.newCalendar' | translate" />
+              <button class="btn btn-sm btn-aganox" type="button" (click)="addCalendar()">{{ 'common.add' | translate }}</button>
             </div>
           </div>
         </div>
@@ -36,24 +38,24 @@ import { Holiday, LeaveCalendar, LeaveConfigService } from '../../core/leave-con
       <div class="col-lg-8">
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-body row g-2 align-items-end">
-            <div class="col-md-3"><label class="form-label">Year</label><input class="form-control" type="number" [(ngModel)]="year" (change)="loadHolidays()" /></div>
-            <div class="col-md-4"><label class="form-label">Date</label><input class="form-control" type="date" [(ngModel)]="holidayForm.date" /></div>
-            <div class="col-md-3"><label class="form-label">Name</label><input class="form-control" [(ngModel)]="holidayForm.name" /></div>
-            <div class="col-md-2"><button class="btn btn-aganox w-100" type="button" (click)="addHoliday()" [disabled]="!selectedCalendarId">Add</button></div>
+            <div class="col-md-3"><label class="form-label">{{ 'common.year' | translate }}</label><input class="form-control" type="number" [(ngModel)]="year" (change)="loadHolidays()" /></div>
+            <div class="col-md-4"><label class="form-label">{{ 'common.date' | translate }}</label><input class="form-control" type="date" [(ngModel)]="holidayForm.date" /></div>
+            <div class="col-md-3"><label class="form-label">{{ 'common.name' | translate }}</label><input class="form-control" [(ngModel)]="holidayForm.name" /></div>
+            <div class="col-md-2"><button class="btn btn-aganox w-100" type="button" (click)="addHoliday()" [disabled]="!selectedCalendarId">{{ 'common.add' | translate }}</button></div>
           </div>
         </div>
         <div class="card border-0 shadow-sm">
           <table class="table mb-0">
-            <thead><tr><th>Date</th><th>Name</th><th></th></tr></thead>
+            <thead><tr><th>{{ 'common.date' | translate }}</th><th>{{ 'common.name' | translate }}</th><th></th></tr></thead>
             <tbody>
               @for (h of holidays(); track h.id) {
                 <tr>
-                  <td>{{ h.holidayDate }}</td>
+                  <td>{{ h.holidayDate | localizedDate }}</td>
                   <td>{{ h.name }}</td>
-                  <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" (click)="removeHoliday(h)">Delete</button></td>
+                  <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" (click)="removeHoliday(h)">{{ 'common.delete' | translate }}</button></td>
                 </tr>
               } @empty {
-                <tr><td colspan="3" class="text-muted text-center py-3">No holidays for this year.</td></tr>
+                <tr><td colspan="3" class="text-muted text-center py-3">{{ 'leave.noHolidaysYear' | translate }}</td></tr>
               }
             </tbody>
           </table>
@@ -119,23 +121,23 @@ export class LeaveHolidaysComponent implements OnInit {
 @Component({
   selector: 'app-leave-preview',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, TranslatePipe],
   template: `
-    <h1 class="h4 mb-4">Leave day preview</h1>
+    <h1 class="h4 mb-4">{{ 'leave.previewTitle' | translate }}</h1>
     <div class="card border-0 shadow-sm">
       <div class="card-body row g-3">
-        <div class="col-md-3"><label class="form-label">Leave type</label>
+        <div class="col-md-3"><label class="form-label">{{ 'leave.leaveType' | translate }}</label>
           <select class="form-select" [(ngModel)]="leaveTypeId">@for (t of types(); track t.id) { <option [value]="t.id">{{ t.name }}</option> }</select>
         </div>
-        <div class="col-md-2"><label class="form-label">From</label><input class="form-control" type="date" [(ngModel)]="fromDate" /></div>
-        <div class="col-md-2"><label class="form-label">To</label><input class="form-control" type="date" [(ngModel)]="toDate" /></div>
-        <div class="col-md-2 d-flex align-items-end"><div class="form-check"><input type="checkbox" class="form-check-input" [(ngModel)]="isHalfDay" id="hd" /><label class="form-check-label" for="hd">Half day</label></div></div>
-        <div class="col-md-3 d-flex align-items-end"><button class="btn btn-aganox" type="button" (click)="preview()">Calculate</button></div>
+        <div class="col-md-2"><label class="form-label">{{ 'common.from' | translate }}</label><input class="form-control" type="date" [(ngModel)]="fromDate" /></div>
+        <div class="col-md-2"><label class="form-label">{{ 'common.to' | translate }}</label><input class="form-control" type="date" [(ngModel)]="toDate" /></div>
+        <div class="col-md-2 d-flex align-items-end"><div class="form-check"><input type="checkbox" class="form-check-input" [(ngModel)]="isHalfDay" id="hd" /><label class="form-check-label" for="hd">{{ 'leave.halfDayLabel' | translate }}</label></div></div>
+        <div class="col-md-3 d-flex align-items-end"><button class="btn btn-aganox" type="button" (click)="preview()">{{ 'leave.calculate' | translate }}</button></div>
       </div>
       @if (result()) {
         <div class="card-footer">
-          <strong>{{ result()!.numberOfDays }} day(s)</strong>
-          <span class="text-muted ms-2">Weekends skipped: {{ result()!.skippedWeekends }}, Holidays skipped: {{ result()!.skippedHolidays }}</span>
+          <strong>{{ 'leave.daysCount' | translate:{ count: result()!.numberOfDays } }}</strong>
+          <span class="text-muted ms-2">{{ 'leave.weekendsSkipped' | translate:{ count: result()!.skippedWeekends } }}, {{ 'leave.holidaysSkipped' | translate:{ count: result()!.skippedHolidays } }}</span>
         </div>
       }
     </div>

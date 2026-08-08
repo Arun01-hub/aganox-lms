@@ -1,65 +1,69 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { AuthService } from '../../core/auth.service';
 import { Department, EmployeeSummary, OrganizationService } from '../../core/organization.service';
+import { PayrollService } from '../../core/payroll.service';
+import { SalaryBreakdownPanelComponent } from '../payroll/salary-breakdown-panel.component';
 
 @Component({
   selector: 'app-employee-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, SalaryBreakdownPanelComponent],
   template: `
     <div class="d-flex align-items-center mb-4 gap-2">
-      <h1 class="h4 mb-0">{{ isEdit() ? 'Edit employee' : 'Add employee' }}</h1>
-      <a routerLink="/employees" class="btn btn-sm btn-outline-secondary ms-auto">Back to list</a>
+      <h1 class="h4 mb-0">{{ (isEdit() ? 'employees.editEmployee' : 'employees.addEmployee') | translate }}</h1>
+      <a routerLink="/employees" class="btn btn-sm btn-outline-secondary ms-auto">{{ 'common.backToList' | translate }}</a>
     </div>
 
     <form class="card border-0 shadow-sm" [formGroup]="form" (ngSubmit)="submit()">
       <div class="card-body row g-3">
         <div class="col-md-3">
-          <label class="form-label">Employee code</label>
+          <label class="form-label">{{ 'employees.employeeCode' | translate }}</label>
           <input class="form-control" formControlName="employeeCode" />
         </div>
         <div class="col-md-5">
-          <label class="form-label">Full name</label>
+          <label class="form-label">{{ 'employees.fullName' | translate }}</label>
           <input class="form-control" formControlName="fullName" />
         </div>
         <div class="col-md-4">
-          <label class="form-label">Email</label>
+          <label class="form-label">{{ 'common.email' | translate }}</label>
           <input class="form-control" type="email" formControlName="email" />
         </div>
         <div class="col-md-4">
-          <label class="form-label">Department</label>
+          <label class="form-label">{{ 'employees.department' | translate }}</label>
           <select class="form-select" formControlName="departmentId">
-            <option value="">Select department</option>
+            <option value="">{{ 'employees.selectDepartment' | translate }}</option>
             @for (dept of departments(); track dept.id) {
               <option [value]="dept.id">{{ dept.name }}</option>
             }
           </select>
         </div>
         <div class="col-md-4">
-          <label class="form-label">Designation</label>
+          <label class="form-label">{{ 'employees.designation' | translate }}</label>
           <input class="form-control" formControlName="designation" />
         </div>
         <div class="col-md-4">
-          <label class="form-label">Date of joining</label>
+          <label class="form-label">{{ 'employees.dateOfJoining' | translate }}</label>
           <input class="form-control" type="date" formControlName="dateOfJoining" />
         </div>
         <div class="col-md-3">
-          <label class="form-label">Status</label>
+          <label class="form-label">{{ 'common.status' | translate }}</label>
           <select class="form-select" formControlName="status">
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Terminated">Terminated</option>
+            <option value="Active">{{ 'empStatus.Active' | translate }}</option>
+            <option value="Inactive">{{ 'empStatus.Inactive' | translate }}</option>
+            <option value="Terminated">{{ 'empStatus.Terminated' | translate }}</option>
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Phone</label>
+          <label class="form-label">{{ 'common.phone' | translate }}</label>
           <input class="form-control" formControlName="phone" />
         </div>
         <div class="col-md-6">
-          <label class="form-label">Manager</label>
+          <label class="form-label">{{ 'employees.manager' | translate }}</label>
           <select class="form-select" formControlName="managerId">
-            <option value="">None</option>
+            <option value="">{{ 'common.none' | translate }}</option>
             @for (mgr of managers(); track mgr.id) {
               <option [value]="mgr.id">{{ mgr.fullName }} ({{ mgr.employeeCode }})</option>
             }
@@ -70,23 +74,40 @@ import { Department, EmployeeSummary, OrganizationService } from '../../core/org
           <div class="col-12">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" formControlName="createUserAccount" id="createUser" />
-              <label class="form-check-label" for="createUser">Create login account</label>
+              <label class="form-check-label" for="createUser">{{ 'employees.createLogin' | translate }}</label>
             </div>
           </div>
           @if (form.controls.createUserAccount.value) {
             <div class="col-md-4">
-              <label class="form-label">Initial password</label>
+              <label class="form-label">{{ 'employees.initialPassword' | translate }}</label>
               <input class="form-control" type="password" formControlName="userPassword" />
             </div>
             <div class="col-md-4">
-              <label class="form-label">User role</label>
+              <label class="form-label">{{ 'employees.userRole' | translate }}</label>
               <select class="form-select" formControlName="userRole">
-                <option value="Employee">Employee</option>
-                <option value="Manager">Manager</option>
-                <option value="HR">HR</option>
-                <option value="Administrator">Administrator</option>
+                <option value="Employee">{{ 'roles.Employee' | translate }}</option>
+                <option value="Manager">{{ 'roles.Manager' | translate }}</option>
+                <option value="HR">{{ 'roles.HR' | translate }}</option>
+                <option value="Administrator">{{ 'roles.Administrator' | translate }}</option>
               </select>
             </div>
+          }
+
+          @if (canManageSalary()) {
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="setSalaryNow" id="setSalaryNow" />
+                <label class="form-check-label" for="setSalaryNow">{{ 'payroll.breakdown.setSalaryNow' | translate }}</label>
+              </div>
+            </div>
+            @if (form.controls.setSalaryNow.value) {
+              <div class="col-12">
+                <app-salary-breakdown-panel
+                  #salaryBreakdown
+                  [initialEffectiveFrom]="form.controls.dateOfJoining.value"
+                />
+              </div>
+            }
           }
         }
 
@@ -95,10 +116,15 @@ import { Department, EmployeeSummary, OrganizationService } from '../../core/org
             <div class="alert alert-danger py-2">{{ error() }}</div>
           </div>
         }
+        @if (salaryWarning()) {
+          <div class="col-12">
+            <div class="alert alert-warning py-2">{{ salaryWarning() }}</div>
+          </div>
+        }
 
         <div class="col-12">
-          <button class="btn btn-aganox" type="submit" [disabled]="form.invalid || saving()">
-            {{ saving() ? 'Saving…' : isEdit() ? 'Update employee' : 'Create employee' }}
+          <button class="btn btn-aganox" type="submit" [disabled]="form.invalid || saving() || salarySaving()">
+            {{ (saving() || salarySaving()) ? ('common.saving' | translate) : ((isEdit() ? 'employees.updateEmployee' : 'employees.createEmployee') | translate) }}
           </button>
         </div>
       </div>
@@ -108,12 +134,19 @@ import { Department, EmployeeSummary, OrganizationService } from '../../core/org
 export class EmployeeFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly org = inject(OrganizationService);
+  private readonly payroll = inject(PayrollService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
+
+  @ViewChild('salaryBreakdown') salaryBreakdown?: SalaryBreakdownPanelComponent;
 
   readonly isEdit = signal(false);
   readonly saving = signal(false);
+  readonly salarySaving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly salaryWarning = signal<string | null>(null);
   readonly departments = signal<Department[]>([]);
   readonly managers = signal<EmployeeSummary[]>([]);
 
@@ -131,13 +164,21 @@ export class EmployeeFormComponent implements OnInit {
     managerId: [''],
     createUserAccount: [false],
     userPassword: [''],
-    userRole: ['Employee']
+    userRole: ['Employee'],
+    setSalaryNow: [false]
   });
 
   ngOnInit(): void {
     this.org.getDepartments(true).subscribe((items) => this.departments.set(items));
     this.org.getEmployees({ pageSize: 100, status: 'Active' }).subscribe((result) => {
       this.managers.set(result.items);
+    });
+
+    this.form.controls.dateOfJoining.valueChanges.subscribe((value) => {
+      if (this.salaryBreakdown && value) {
+        this.salaryBreakdown.effectiveFrom = value;
+        this.salaryBreakdown.onInputChanged();
+      }
     });
 
     const id = this.route.snapshot.paramMap.get('id');
@@ -163,13 +204,23 @@ export class EmployeeFormComponent implements OnInit {
     }
   }
 
+  canManageSalary(): boolean {
+    return this.auth.hasPermission('Payroll.Salary.Manage');
+  }
+
   submit(): void {
     if (this.form.invalid) {
       return;
     }
 
+    if (this.form.controls.setSalaryNow.value && this.salaryBreakdown && !this.salaryBreakdown.isValid()) {
+      this.error.set(this.translate.instant('payroll.basicPay') + ' ' + this.translate.instant('common.saveFailed'));
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
+    this.salaryWarning.set(null);
     const raw = this.form.getRawValue();
     const payload: Record<string, unknown> = {
       employeeCode: raw.employeeCode,
@@ -198,11 +249,41 @@ export class EmployeeFormComponent implements OnInit {
     request.subscribe({
       next: (emp) => {
         this.saving.set(false);
+        if (!this.isEdit() && raw.setSalaryNow && this.salaryBreakdown) {
+          this.saveSalaryRevision(emp.id);
+          return;
+        }
         void this.router.navigate(['/employees', emp.id]);
       },
       error: (err) => {
         this.saving.set(false);
-        this.error.set(err.error?.errors?.[0] ?? 'Save failed.');
+        this.error.set(err.error?.errors?.[0] ?? this.translate.instant('common.saveFailed'));
+      }
+    });
+  }
+
+  private saveSalaryRevision(employeeId: string): void {
+    const panel = this.salaryBreakdown;
+    if (!panel) {
+      void this.router.navigate(['/employees', employeeId]);
+      return;
+    }
+
+    this.salarySaving.set(true);
+    this.payroll.createSalaryRevision({
+      employeeId,
+      effectiveFrom: panel.effectiveFrom,
+      basicPay: panel.basicPay,
+      overrides: panel.getOverridesPayload()
+    }).subscribe({
+      next: () => {
+        this.salarySaving.set(false);
+        void this.router.navigate(['/employees', employeeId]);
+      },
+      error: () => {
+        this.salarySaving.set(false);
+        this.salaryWarning.set(this.translate.instant('payroll.breakdown.salarySaveFailed'));
+        void this.router.navigate(['/employees', employeeId]);
       }
     });
   }

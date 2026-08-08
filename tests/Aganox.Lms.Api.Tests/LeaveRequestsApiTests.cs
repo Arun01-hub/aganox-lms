@@ -105,6 +105,7 @@ internal static class LeaveTestData
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();
             EnsureRolesSeeded(scope.ServiceProvider);
+            EnsureDashboardLeaveTypes(db);
 
             if (db.Employees.Any(e => e.UserId == UserId))
             {
@@ -166,6 +167,49 @@ internal static class LeaveTestData
             db.LeaveBalances.Add(balance);
             db.SaveChanges();
             _seeded = true;
+        }
+    }
+
+    private static void EnsureDashboardLeaveTypes(AppDbContext db)
+    {
+        var year = DateTime.UtcNow.Year;
+        var seeds = new (string Code, string Name, int SortOrder, decimal OpeningBalance)[]
+        {
+            ("CL", "Casual Leave", 1, 12),
+            ("EL", "Earned Leave", 2, 12)
+        };
+
+        foreach (var seed in seeds)
+        {
+            var leaveType = db.LeaveTypes.FirstOrDefault(x => x.Code == seed.Code);
+            if (leaveType is null)
+            {
+                leaveType = new LeaveType
+                {
+                    Code = seed.Code,
+                    Name = seed.Name,
+                    SortOrder = seed.SortOrder,
+                    IsPaid = true,
+                    RequiresApproval = true,
+                    AllowHalfDay = true,
+                    IsActive = true
+                };
+                db.LeaveTypes.Add(leaveType);
+                db.SaveChanges();
+            }
+
+            if (!db.LeavePolicies.Any(x => x.LeaveTypeId == leaveType.Id && x.Year == year))
+            {
+                db.LeavePolicies.Add(new LeavePolicy
+                {
+                    LeaveTypeId = leaveType.Id,
+                    Year = year,
+                    SkipWeekends = true,
+                    SkipHolidays = true,
+                    DefaultOpeningBalance = seed.OpeningBalance
+                });
+                db.SaveChanges();
+            }
         }
     }
 

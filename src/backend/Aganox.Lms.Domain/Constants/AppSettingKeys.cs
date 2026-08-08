@@ -13,7 +13,7 @@ public static class DefaultAppSettings
 {
     public static readonly IReadOnlyDictionary<string, string> Values = new Dictionary<string, string>
     {
-        [AppSettingKeys.CompanyName] = "Aganox LMS",
+        [AppSettingKeys.CompanyName] = "MPCS",
         [AppSettingKeys.SmtpFromEmail] = "noreply@aganox.local",
         [AppSettingKeys.BackupFolderPath] = "backups",
         [AppSettingKeys.BackupScheduleEnabled] = "false",

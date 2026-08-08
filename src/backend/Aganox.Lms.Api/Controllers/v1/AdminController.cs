@@ -1,5 +1,7 @@
 using Aganox.Lms.Application.Features.Admin;
 using Aganox.Lms.Application.Features.Admin.Dtos;
+using Aganox.Lms.Application.Features.Navigation;
+using Aganox.Lms.Application.Features.Navigation.Dtos;
 using Aganox.Lms.Domain.Constants;
 using Asp.Versioning;
 using MediatR;
@@ -130,5 +132,28 @@ public sealed class AdminController : ControllerBase
     {
         var result = await _mediator.Send(new RestoreBackupCommand(request.BackupFilePath), cancellationToken);
         return !result.Succeeded ? BadRequest(new { errors = result.Errors }) : Ok(new { message = "Restore completed." });
+    }
+
+    [HttpGet("navigation/menu")]
+    [Authorize(Policy = Permissions.AdminSettings)]
+    public async Task<IActionResult> GetNavigationMenu(CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(new GetAdminNavigationMenuQuery(), cancellationToken));
+
+    [HttpPut("navigation/menu")]
+    [Authorize(Policy = Permissions.AdminSettings)]
+    public async Task<IActionResult> SaveNavigationMenu(
+        [FromBody] SaveNavigationMenuRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new SaveNavigationMenuCommand(request.Items), cancellationToken);
+        return !result.Succeeded ? BadRequest(new { errors = result.Errors }) : Ok(result.Data);
+    }
+
+    [HttpPost("navigation/menu/reset")]
+    [Authorize(Policy = Permissions.AdminSettings)]
+    public async Task<IActionResult> ResetNavigationMenu(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new ResetNavigationMenuCommand(), cancellationToken);
+        return !result.Succeeded ? BadRequest(new { errors = result.Errors }) : Ok(result.Data);
     }
 }

@@ -1,5 +1,9 @@
+using Aganox.Lms.Application.Common.Interfaces;
+using Aganox.Lms.Domain.Entities.Attendance;
+using Aganox.Lms.Domain.Entities.Extensibility;
 using Aganox.Lms.Domain.Entities.Leave;
 using Aganox.Lms.Domain.Entities.Organization;
+using Aganox.Lms.Domain.Entities.Payroll;
 using Aganox.Lms.Domain.Entities.System;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +29,19 @@ public interface IAppDbContext
     DbSet<ActivityLog> ActivityLogs { get; }
     DbSet<AppSetting> AppSettings { get; }
     DbSet<BackupHistory> BackupHistories { get; }
+    DbSet<NavigationMenuItem> NavigationMenuItems { get; }
+    DbSet<CustomFieldDefinition> CustomFieldDefinitions { get; }
+    DbSet<CustomFieldValue> CustomFieldValues { get; }
+    DbSet<AttendanceDay> AttendanceDays { get; }
+    DbSet<SalaryComponent> SalaryComponents { get; }
+    DbSet<SalaryRule> SalaryRules { get; }
+    DbSet<EmployeeSalaryRevision> EmployeeSalaryRevisions { get; }
+    DbSet<EmployeeSalaryComponentOverride> EmployeeSalaryComponentOverrides { get; }
+    DbSet<PayrollRun> PayrollRuns { get; }
+    DbSet<PayrollEmployeeResult> PayrollEmployeeResults { get; }
+    DbSet<PayrollLineItem> PayrollLineItems { get; }
+    DbSet<PayrollArrear> PayrollArrears { get; }
+    DbSet<PayrollRunAudit> PayrollRunAudits { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,6 +1,6 @@
-# Aganox LMS
+# lms-pay (Aganox LMS)
 
-Enterprise Leave Management System — ASP.NET Core + Angular.
+Enterprise Leave Management + Payroll — ASP.NET Core + Angular.
 
 ## Status
 
@@ -11,6 +11,7 @@ Phases 1–8 implemented:
 - Dashboards & reports
 - Admin, audit, backup
 - **Hardening, publish scripts, Inno Setup installer, documentation, CI**
+- **Payroll module:** configurable salary components/rules, attendance, monthly payroll runs, LOP, arrears, payslips, payroll reports (EN/TA UI)
 
 ## Prerequisites
 
@@ -40,6 +41,8 @@ If LocalDB fails to start, run `.\scripts\repair-localdb.ps1`.
 
 - API Swagger: HTTPS URL from launch settings (e.g. `https://localhost:7277/swagger`)
 - UI: `http://localhost:4200` (proxies `/api` to the API)
+
+The web UI defaults to **Tamil**. Use the **தமிழ் / English** switcher in the navbar (or on the login screen) to change language; your choice is saved in the browser.
 
 ## Production / server install
 

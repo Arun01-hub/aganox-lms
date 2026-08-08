@@ -101,10 +101,11 @@ public sealed class ReportsController : ControllerBase
         [FromQuery] int? year = null,
         [FromQuery] int? month = null,
         [FromQuery] Guid? departmentId = null,
+        [FromQuery] string lang = "en",
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new ExportReportQuery(
-            name, format, employeeId, from, to, year, month, departmentId), cancellationToken);
+            name, format, employeeId, from, to, year, month, departmentId, lang), cancellationToken);
 
         if (result is null)
         {

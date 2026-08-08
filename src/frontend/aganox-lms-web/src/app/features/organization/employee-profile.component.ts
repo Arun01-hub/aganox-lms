@@ -1,14 +1,16 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth.service';
 import { LeaveBalance, LeaveConfigService, LeaveType } from '../../core/leave-config.service';
 import { EmployeeProfile, OrganizationService } from '../../core/organization.service';
+import { LocalizedDatePipe } from '../../core/localized-date.pipe';
 
 @Component({
   selector: 'app-employee-profile',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TranslatePipe, LocalizedDatePipe],
   template: `
     @if (profile()) {
       <div class="d-flex align-items-center mb-4 gap-2 flex-wrap">
@@ -16,9 +18,9 @@ import { EmployeeProfile, OrganizationService } from '../../core/organization.se
           <h1 class="h4 mb-0">{{ profile()!.fullName }}</h1>
           <p class="text-muted mb-0">{{ profile()!.employeeCode }} · {{ profile()!.designation }}</p>
         </div>
-        <a routerLink="/employees" class="btn btn-sm btn-outline-secondary ms-auto">Back to list</a>
+        <a routerLink="/employees" class="btn btn-sm btn-outline-secondary ms-auto">{{ 'common.backToList' | translate }}</a>
         @if (canUpdate()) {
-          <a class="btn btn-sm btn-aganox" [routerLink]="['/employees', profile()!.id, 'edit']">Edit</a>
+          <a class="btn btn-sm btn-aganox" [routerLink]="['/employees', profile()!.id, 'edit']">{{ 'common.edit' | translate }}</a>
         }
       </div>
 
@@ -26,26 +28,26 @@ import { EmployeeProfile, OrganizationService } from '../../core/organization.se
         <div class="col-lg-7">
           <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
-              <h2 class="h6">Details</h2>
+              <h2 class="h6">{{ 'common.details' | translate }}</h2>
               <dl class="row mb-0">
-                <dt class="col-sm-4">Department</dt>
+                <dt class="col-sm-4">{{ 'employees.department' | translate }}</dt>
                 <dd class="col-sm-8">{{ profile()!.departmentName }}</dd>
-                <dt class="col-sm-4">Email</dt>
+                <dt class="col-sm-4">{{ 'common.email' | translate }}</dt>
                 <dd class="col-sm-8">{{ profile()!.email }}</dd>
-                <dt class="col-sm-4">Phone</dt>
-                <dd class="col-sm-8">{{ profile()!.phone ?? '—' }}</dd>
-                <dt class="col-sm-4">Manager</dt>
-                <dd class="col-sm-8">{{ profile()!.managerName ?? '—' }}</dd>
-                <dt class="col-sm-4">Joined</dt>
-                <dd class="col-sm-8">{{ profile()!.dateOfJoining }}</dd>
-                <dt class="col-sm-4">Status</dt>
-                <dd class="col-sm-8">{{ profile()!.status }}</dd>
-                <dt class="col-sm-4">Login account</dt>
+                <dt class="col-sm-4">{{ 'common.phone' | translate }}</dt>
+                <dd class="col-sm-8">{{ profile()!.phone ?? ('common.dash' | translate) }}</dd>
+                <dt class="col-sm-4">{{ 'employees.manager' | translate }}</dt>
+                <dd class="col-sm-8">{{ profile()!.managerName ?? ('common.dash' | translate) }}</dd>
+                <dt class="col-sm-4">{{ 'employees.joined' | translate }}</dt>
+                <dd class="col-sm-8">{{ profile()!.dateOfJoining | localizedDate }}</dd>
+                <dt class="col-sm-4">{{ 'common.status' | translate }}</dt>
+                <dd class="col-sm-8">{{ ('empStatus.' + profile()!.status) | translate }}</dd>
+                <dt class="col-sm-4">{{ 'employees.loginAccount' | translate }}</dt>
                 <dd class="col-sm-8">
                   @if (profile()!.userId) {
-                    {{ profile()!.userEmail ?? profile()!.email }} (linked)
+                    {{ profile()!.userEmail ?? profile()!.email }} ({{ 'common.linked' | translate }})
                   } @else {
-                    Not linked
+                    {{ 'common.notLinked' | translate }}
                   }
                 </dd>
               </dl>
@@ -55,16 +57,16 @@ import { EmployeeProfile, OrganizationService } from '../../core/organization.se
           @if (canAdjustBalances()) {
             <div class="card border-0 shadow-sm mb-3">
               <div class="card-body">
-                <h2 class="h6">Opening balances ({{ balanceYear }})</h2>
+                <h2 class="h6">{{ 'employees.openingBalances' | translate:{ year: balanceYear } }}</h2>
                 @for (row of balanceRows; track row.leaveTypeId) {
                   <div class="row g-2 align-items-center mb-2">
                     <div class="col-6">{{ row.leaveTypeName }}</div>
                     <div class="col-4"><input class="form-control form-control-sm" type="number" [(ngModel)]="row.openingBalance" /></div>
-                    <div class="col-2 small text-muted">{{ row.remaining ?? '—' }} left</div>
+                    <div class="col-2 small text-muted">{{ row.remaining ?? ('common.dash' | translate) }} {{ 'employees.left' | translate }}</div>
                   </div>
                 }
                 <button class="btn btn-sm btn-aganox mt-2" type="button" (click)="saveBalances()" [disabled]="savingBalances()">
-                  Save opening balances
+                  {{ 'employees.saveOpeningBalances' | translate }}
                 </button>
                 @if (balanceError()) { <div class="text-danger small mt-2">{{ balanceError() }}</div> }
               </div>
@@ -74,22 +76,22 @@ import { EmployeeProfile, OrganizationService } from '../../core/organization.se
           @if (canManageUsers() && !profile()!.userId) {
             <div class="card border-0 shadow-sm">
               <div class="card-body">
-                <h2 class="h6">Link user account</h2>
+                <h2 class="h6">{{ 'employees.linkUserAccount' | translate }}</h2>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label">Email</label>
+                    <label class="form-label">{{ 'common.email' | translate }}</label>
                     <input class="form-control" [(ngModel)]="linkForm.email" />
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Initial password</label>
+                    <label class="form-label">{{ 'employees.initialPassword' | translate }}</label>
                     <input class="form-control" type="password" [(ngModel)]="linkForm.password" />
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Role</label>
+                    <label class="form-label">{{ 'common.role' | translate }}</label>
                     <select class="form-select" [(ngModel)]="linkForm.role">
-                      <option value="Employee">Employee</option>
-                      <option value="Manager">Manager</option>
-                      <option value="HR">HR</option>
+                      <option value="Employee">{{ 'roles.Employee' | translate }}</option>
+                      <option value="Manager">{{ 'roles.Manager' | translate }}</option>
+                      <option value="HR">{{ 'roles.HR' | translate }}</option>
                     </select>
                   </div>
                   <div class="col-12">
@@ -97,7 +99,7 @@ import { EmployeeProfile, OrganizationService } from '../../core/organization.se
                       <div class="alert alert-danger py-2">{{ linkError() }}</div>
                     }
                     <button class="btn btn-aganox" type="button" (click)="linkUser()" [disabled]="linking()">
-                      Create & link account
+                      {{ 'employees.createLinkAccount' | translate }}
                     </button>
                   </div>
                 </div>
@@ -109,7 +111,7 @@ import { EmployeeProfile, OrganizationService } from '../../core/organization.se
         <div class="col-lg-5">
           <div class="card border-0 shadow-sm">
             <div class="card-body">
-              <h2 class="h6">Direct reports ({{ profile()!.directReports.length }})</h2>
+              <h2 class="h6">{{ 'employees.directReports' | translate:{ count: profile()!.directReports.length } }}</h2>
               @if (profile()!.directReports.length) {
                 <ul class="list-group list-group-flush">
                   @for (report of profile()!.directReports; track report.id) {
@@ -120,7 +122,7 @@ import { EmployeeProfile, OrganizationService } from '../../core/organization.se
                   }
                 </ul>
               } @else {
-                <p class="text-muted mb-0">No direct reports.</p>
+                <p class="text-muted mb-0">{{ 'employees.noDirectReports' | translate }}</p>
               }
             </div>
           </div>
@@ -136,6 +138,7 @@ export class EmployeeProfileComponent implements OnInit {
   private readonly leave = inject(LeaveConfigService);
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
+  private readonly translate = inject(TranslateService);
 
   readonly profile = signal<EmployeeProfile | null>(null);
   readonly error = signal<string | null>(null);
@@ -161,7 +164,7 @@ export class EmployeeProfileComponent implements OnInit {
         this.linkForm.email = item.email;
         this.loadBalances(id);
       },
-      error: () => this.error.set('Employee not found.')
+      error: () => this.error.set(this.translate.instant('employees.notFound'))
     });
   }
 
@@ -212,7 +215,7 @@ export class EmployeeProfileComponent implements OnInit {
         },
         error: (err) => {
           this.savingBalances.set(false);
-          this.balanceError.set(err.error?.errors?.[0] ?? 'Save failed.');
+          this.balanceError.set(err.error?.errors?.[0] ?? this.translate.instant('common.saveFailed'));
         }
       });
   }
@@ -238,7 +241,7 @@ export class EmployeeProfileComponent implements OnInit {
         },
         error: (err) => {
           this.linking.set(false);
-          this.linkError.set(err.error?.errors?.[0] ?? 'Link failed.');
+          this.linkError.set(err.error?.errors?.[0] ?? this.translate.instant('employees.linkFailed'));
         }
       });
   }

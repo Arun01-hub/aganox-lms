@@ -26,6 +26,7 @@ public sealed record GetLeaveRequestsQuery(
 public sealed record GetLeaveRequestByIdQuery(Guid Id) : IRequest<LeaveRequestDetailDto?>;
 
 public sealed record CreateLeaveRequestCommand(
+    Guid? EmployeeId,
     Guid LeaveTypeId,
     DateOnly FromDate,
     DateOnly ToDate,
@@ -302,14 +303,36 @@ public sealed class CreateLeaveRequestCommandHandler : IRequestHandler<CreateLea
             return Result<LeaveRequestDetailDto>.Failure("Not authenticated.");
         }
 
-        var employeeId = await LeaveRequestAccessService.GetEmployeeIdForUserAsync(_db, _currentUser.UserId.Value, cancellationToken);
-        if (!employeeId.HasValue)
+        Guid targetEmployeeId;
+        if (request.EmployeeId.HasValue)
         {
-            return Result<LeaveRequestDetailDto>.Failure("Your user account is not linked to an employee profile.");
+            if (!LeaveRequestAccessService.CanViewAll(_currentUser))
+            {
+                return Result<LeaveRequestDetailDto>.Failure("You are not allowed to apply leave for another employee.");
+            }
+
+            var exists = await _db.Employees.AsNoTracking()
+                .AnyAsync(x => x.Id == request.EmployeeId.Value && x.Status == EmployeeStatus.Active, cancellationToken);
+            if (!exists)
+            {
+                return Result<LeaveRequestDetailDto>.Failure("Employee not found.");
+            }
+
+            targetEmployeeId = request.EmployeeId.Value;
+        }
+        else
+        {
+            var employeeId = await LeaveRequestAccessService.GetEmployeeIdForUserAsync(_db, _currentUser.UserId.Value, cancellationToken);
+            if (!employeeId.HasValue)
+            {
+                return Result<LeaveRequestDetailDto>.Failure("Your user account is not linked to an employee profile.");
+            }
+
+            targetEmployeeId = employeeId.Value;
         }
 
         var calcResult = await LeaveDayCalculationService.CalculateAsync(
-            _db, employeeId.Value, request.LeaveTypeId, request.FromDate, request.ToDate, request.IsHalfDay, cancellationToken);
+            _db, targetEmployeeId, request.LeaveTypeId, request.FromDate, request.ToDate, request.IsHalfDay, cancellationToken);
         if (!calcResult.Result.Succeeded)
         {
             return Result<LeaveRequestDetailDto>.Failure(calcResult.Result.Errors);
@@ -329,7 +352,7 @@ public sealed class CreateLeaveRequestCommandHandler : IRequestHandler<CreateLea
 
         var entity = new LeaveRequest
         {
-            EmployeeId = employeeId.Value,
+            EmployeeId = targetEmployeeId,
             LeaveTypeId = request.LeaveTypeId,
             FromDate = request.FromDate,
             ToDate = request.ToDate,

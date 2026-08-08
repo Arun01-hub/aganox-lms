@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { LanguageService } from './language.service';
 
 export interface ReportResult<T> {
   rows: T[];
@@ -10,6 +11,7 @@ export interface ReportResult<T> {
 @Injectable({ providedIn: 'root' })
 export class ReportService {
   private readonly http = inject(HttpClient);
+  private readonly language = inject(LanguageService);
   private readonly base = environment.apiBaseUrl;
 
   getTrends(from: string, to: string) {
@@ -34,7 +36,7 @@ export class ReportService {
   }
 
   exportReport(name: string, format: 'csv' | 'xlsx' | 'pdf', params: Record<string, string | number>) {
-    let httpParams = new HttpParams().set('format', format);
+    let httpParams = new HttpParams().set('format', format).set('lang', this.language.currentLang());
     for (const [key, value] of Object.entries(params)) {
       httpParams = httpParams.set(key, value);
     }

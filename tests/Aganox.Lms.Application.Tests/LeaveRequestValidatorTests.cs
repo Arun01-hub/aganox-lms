@@ -10,6 +10,7 @@ public class LeaveRequestValidatorTests
     {
         var validator = new CreateLeaveRequestCommandValidator();
         var result = validator.TestValidate(new CreateLeaveRequestCommand(
+            null,
             Guid.NewGuid(),
             new DateOnly(2026, 8, 10),
             new DateOnly(2026, 8, 1),

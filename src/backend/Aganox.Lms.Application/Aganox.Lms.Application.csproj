@@ -5,12 +5,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Common\Export\Fonts\*.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ClosedXML" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="QuestPDF" />
   </ItemGroup>
 
 </Project>

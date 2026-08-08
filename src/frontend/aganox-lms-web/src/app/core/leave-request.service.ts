@@ -52,6 +52,7 @@ export interface PagedLeaveRequests {
 }
 
 export interface CreateLeaveRequestPayload {
+  employeeId?: string;
   leaveTypeId: string;
   fromDate: string;
   toDate: string;

@@ -113,6 +113,51 @@ export const routes: Routes = [
           import('./features/reports/reports.component').then((m) => m.ReportsComponent)
       },
       {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/user-profile.component').then((m) => m.UserProfileComponent)
+      },
+      {
+        path: 'attendance',
+        loadComponent: () =>
+          import('./features/attendance/attendance.component').then((m) => m.AttendanceComponent)
+      },
+      {
+        path: 'payroll/components',
+        loadComponent: () =>
+          import('./features/payroll/payroll-config.component').then((m) => m.PayrollConfigComponent)
+      },
+      {
+        path: 'payroll/salaries',
+        loadComponent: () =>
+          import('./features/payroll/payroll-salaries.component').then((m) => m.PayrollSalariesComponent)
+      },
+      {
+        path: 'payroll/runs',
+        loadComponent: () =>
+          import('./features/payroll/payroll-runs.component').then((m) => m.PayrollRunsComponent)
+      },
+      {
+        path: 'payroll/salary-entry',
+        loadComponent: () =>
+          import('./features/payroll/salary-entry.component').then((m) => m.SalaryEntryComponent)
+      },
+      {
+        path: 'payroll/payslips/:runId',
+        loadComponent: () =>
+          import('./features/payroll/payroll-payslips.component').then((m) => m.PayrollPayslipsComponent)
+      },
+      {
+        path: 'payroll/reports',
+        loadComponent: () =>
+          import('./features/payroll/payroll-reports.component').then((m) => m.PayrollReportsComponent)
+      },
+      {
+        path: 'payroll/arrears',
+        loadComponent: () =>
+          import('./features/payroll/payroll-arrears.component').then((m) => m.PayrollArrearsComponent)
+      },
+      {
         path: 'admin',
         loadComponent: () =>
           import('./features/admin/admin.component').then((m) => m.AdminComponent)

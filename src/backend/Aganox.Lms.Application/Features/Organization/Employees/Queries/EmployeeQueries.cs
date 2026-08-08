@@ -165,8 +165,6 @@ public sealed class GetEmployeeProfileQueryHandler : IRequestHandler<GetEmployee
             .Include(x => x.Manager)
             .Include(x => x.DirectReports)
                 .ThenInclude(x => x.Department)
-            .Include(x => x.DirectReports)
-                .ThenInclude(x => x.Manager)
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (employee is null)
@@ -180,7 +178,7 @@ public sealed class GetEmployeeProfileQueryHandler : IRequestHandler<GetEmployee
 
         var directReports = employee.DirectReports
             .OrderBy(x => x.FullName)
-            .Select(GetEmployeesQueryHandler.MapSummary)
+            .Select(x => GetEmployeesQueryHandler.MapSummary(x) with { ManagerName = employee.FullName })
             .ToList();
 
         return new EmployeeProfileDto(

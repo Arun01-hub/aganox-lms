@@ -77,7 +77,7 @@ public sealed class CreateLeaveTypeCommandHandler : IRequestHandler<CreateLeaveT
     public async Task<Result<LeaveTypeDto>> Handle(CreateLeaveTypeCommand request, CancellationToken cancellationToken)
     {
         var code = request.Code.Trim().ToUpperInvariant();
-        if (await _db.LeaveTypes.AnyAsync(x => x.Code == code, cancellationToken))
+        if (await _db.LeaveTypes.IgnoreQueryFilters().AnyAsync(x => x.Code == code, cancellationToken))
             return Result<LeaveTypeDto>.Failure("Leave type code already exists.");
 
         var entity = new LeaveType
@@ -110,7 +110,7 @@ public sealed class UpdateLeaveTypeCommandHandler : IRequestHandler<UpdateLeaveT
         if (entity is null) return Result<LeaveTypeDto>.Failure("Leave type not found.");
 
         var code = request.Code.Trim().ToUpperInvariant();
-        if (await _db.LeaveTypes.AnyAsync(x => x.Code == code && x.Id != request.Id, cancellationToken))
+        if (await _db.LeaveTypes.IgnoreQueryFilters().AnyAsync(x => x.Code == code && x.Id != request.Id, cancellationToken))
             return Result<LeaveTypeDto>.Failure("Leave type code already exists.");
 
         entity.Code = code;

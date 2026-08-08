@@ -1,51 +1,69 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth.service';
+import { LanguageSwitcherComponent } from '../../core/language-switcher.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, LanguageSwitcherComponent],
   template: `
-    <section class="auth-panel shadow-sm">
-      <h1 class="h3 brand-mark mb-1">Aganox LMS</h1>
-      <p class="text-muted mb-4">Sign in to manage leave.</p>
-
-      <form [formGroup]="form" (ngSubmit)="submit()">
-        <div class="mb-3">
-          <label class="form-label" for="email">Email</label>
-          <input id="email" class="form-control" type="email" formControlName="email" autocomplete="username" />
+    <div class="auth-shell">
+      <section class="auth-panel">
+        <div class="auth-panel-head">
+          <i class="bi bi-bank2" aria-hidden="true"></i>
+          <h1>{{ 'app.name' | translate }}</h1>
+          <div class="ms-auto">
+            <app-language-switcher />
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label" for="password">Password</label>
-          <input
-            id="password"
-            class="form-control"
-            type="password"
-            formControlName="password"
-            autocomplete="current-password"
-          />
-        </div>
+        <div class="auth-panel-body">
+          <p class="auth-panel-tagline">{{ 'app.tagline' | translate }}</p>
 
-        @if (error()) {
-          <div class="alert alert-danger py-2">{{ error() }}</div>
-        }
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <div class="mb-2">
+              <label class="form-label" for="email">
+                <i class="bi bi-envelope me-1" aria-hidden="true"></i>{{ 'common.email' | translate }}
+              </label>
+              <input id="email" class="form-control" type="email" formControlName="email" autocomplete="username" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="password">
+                <i class="bi bi-key me-1" aria-hidden="true"></i>{{ 'common.password' | translate }}
+              </label>
+              <input
+                id="password"
+                class="form-control"
+                type="password"
+                formControlName="password"
+                autocomplete="current-password"
+              />
+            </div>
 
-        <button class="btn btn-aganox w-100" type="submit" [disabled]="form.invalid || loading()">
-          {{ loading() ? 'Signing in…' : 'Sign in' }}
-        </button>
-        <div class="text-center mt-3">
-          <a routerLink="/forgot-password" class="small">Forgot password?</a>
+            @if (error()) {
+              <div class="alert alert-danger py-2">{{ error() }}</div>
+            }
+
+            <button class="btn btn-aganox w-100 mt-2" type="submit" [disabled]="form.invalid || loading()">
+              <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>
+              {{ loading() ? ('auth.signingIn' | translate) : ('auth.signIn' | translate) }}
+            </button>
+            <div class="text-center mt-2">
+              <a routerLink="/forgot-password" class="small">{{ 'auth.forgotPassword' | translate }}</a>
+            </div>
+          </form>
         </div>
-      </form>
-    </section>
+      </section>
+    </div>
   `
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -70,7 +88,7 @@ export class LoginComponent {
       },
       error: () => {
         this.loading.set(false);
-        this.error.set('Invalid email or password.');
+        this.error.set(this.translate.instant('auth.invalidCredentials'));
       }
     });
   }

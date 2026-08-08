@@ -1,5 +1,7 @@
 using System.Reflection;
+using System.Reflection;
 using Aganox.Lms.Application.Common.Behaviors;
+using Aganox.Lms.Application.Features.Attendance;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,7 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddScoped<AttendanceService>();
         return services;
     }
 }

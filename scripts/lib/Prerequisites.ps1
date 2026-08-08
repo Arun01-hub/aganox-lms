@@ -138,10 +138,18 @@ function Test-SqlLocalDb {
         return $false
     }
 
-    $info = & sqllocaldb info MSSQLLocalDB 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0 -or $info -match "does not exist|not found") {
-        $Warnings.Value += "LocalDB instance MSSQLLocalDB not found. Run scripts\repair-localdb.ps1 or create it manually."
-        Write-Host "  [WARN] LocalDB instance MSSQLLocalDB missing" -ForegroundColor Yellow
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $info = & sqllocaldb info MSSQLLocalDB 2>&1 | Out-String
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+
+    if ($exitCode -ne 0 -or $info -match "does not exist|not found|failed because of the following error|Unexpected error occurred") {
+        $Warnings.Value += "LocalDB instance MSSQLLocalDB is missing or broken. Run scripts\repair-localdb.ps1."
+        Write-Host "  [WARN] LocalDB instance MSSQLLocalDB missing or broken" -ForegroundColor Yellow
         return $false
     }
 

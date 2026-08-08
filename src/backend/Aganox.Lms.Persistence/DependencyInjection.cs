@@ -19,7 +19,7 @@ public static class DependencyInjection
         {
             if (useInMemory)
             {
-                options.UseInMemoryDatabase("AganoxLmsTests");
+                options.UseInMemoryDatabase("AganoxLmsTests_v3");
             }
             else
             {

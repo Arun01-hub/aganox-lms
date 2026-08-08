@@ -1,10 +1,10 @@
 using System.Globalization;
-using System.Text;
+using Aganox.Lms.Application.Common.Export;
+using Aganox.Lms.Application.Common.Export.Templates;
 using Aganox.Lms.Application.Common.Interfaces;
 using Aganox.Lms.Application.Features.Reports.Dtos;
 using Aganox.Lms.Application.Features.Reports.Services;
 using Aganox.Lms.Domain.Enums;
-using ClosedXML.Excel;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,7 +33,8 @@ public sealed record ExportReportQuery(
     DateOnly? To,
     int? Year,
     int? Month,
-    Guid? DepartmentId) : IRequest<ReportExportResult?>;
+    Guid? DepartmentId,
+    string Language = "en") : IRequest<ReportExportResult?>;
 
 public sealed record ReportExportResult(byte[] Content, string ContentType, string FileName);
 
@@ -345,11 +346,16 @@ public sealed class GetTrendReportQueryHandler
 public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery, ReportExportResult?>
 {
     private readonly IMediator _mediator;
+    private readonly IAppDbContext _db;
     private readonly ICurrentUserService _currentUser;
 
-    public ExportReportQueryHandler(IMediator mediator, ICurrentUserService currentUser)
+    public ExportReportQueryHandler(
+        IMediator mediator,
+        IAppDbContext db,
+        ICurrentUserService currentUser)
     {
         _mediator = mediator;
+        _db = db;
         _currentUser = currentUser;
     }
 
@@ -366,25 +372,28 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
             return null;
         }
 
-        var (headers, rows, title) = await LoadReportDataAsync(request, cancellationToken);
+        var language = ExportLanguageParser.Parse(request.Language);
+        var (headers, rows, title) = await LoadReportDataAsync(request, language, cancellationToken);
         if (headers is null)
         {
             return null;
         }
 
+        var companyName = await ExportCompanyName.ResolveAsync(_db, cancellationToken);
+        var model = new TabularReportModel(companyName, title, null, headers, rows, language);
         var safeName = request.ReportName.ToLowerInvariant().Replace(' ', '-');
         return format switch
         {
             "csv" => new ReportExportResult(
-                Encoding.UTF8.GetBytes(BuildCsv(headers, rows)),
+                TabularReportCsvBuilder.Build(headers, rows),
                 "text/csv",
                 $"{safeName}.csv"),
             "xlsx" => new ReportExportResult(
-                BuildXlsx(title, headers, rows),
+                TabularReportExcelTemplate.Generate(model),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"{safeName}.xlsx"),
             "pdf" => new ReportExportResult(
-                BuildSimplePdf(title, headers, rows),
+                TabularReportPdfTemplate.Generate(model),
                 "application/pdf",
                 $"{safeName}.pdf"),
             _ => null
@@ -393,6 +402,7 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
 
     private async Task<(string[]? Headers, IReadOnlyList<string[]> Rows, string Title)> LoadReportDataAsync(
         ExportReportQuery request,
+        ExportLanguage language,
         CancellationToken cancellationToken)
     {
         switch (request.ReportName.ToLowerInvariant())
@@ -412,7 +422,7 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
                 }
 
                 return (
-                    ["Employee Code", "Employee", "Department", "Leave Type", "From", "To", "Days", "Status"],
+                    ExportLocalization.GetLeaveReportHeaders(language, "employee-leave"),
                     report.Rows.Select(x => new[]
                     {
                         x.EmployeeCode, x.EmployeeName, x.DepartmentName, x.LeaveTypeName,
@@ -436,7 +446,7 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
                 }
 
                 return (
-                    ["Department", "Leave Type", "Requests", "Total Days"],
+                    ExportLocalization.GetLeaveReportHeaders(language, "monthly"),
                     report.Rows.Select(x => new[]
                     {
                         x.DepartmentName, x.LeaveTypeName,
@@ -459,7 +469,7 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
                 }
 
                 return (
-                    ["Department", "Leave Type", "Requests", "Total Days"],
+                    ExportLocalization.GetLeaveReportHeaders(language, "yearly"),
                     report.Rows.Select(x => new[]
                     {
                         x.DepartmentName, x.LeaveTypeName,
@@ -482,7 +492,7 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
                 }
 
                 return (
-                    ["Code", "Employee", "Department", "Leave Type", "Opening", "Consumed", "Remaining"],
+                    ExportLocalization.GetLeaveReportHeaders(language, "balances"),
                     report.Rows.Select(x => new[]
                     {
                         x.EmployeeCode, x.EmployeeName, x.DepartmentName, x.LeaveTypeCode,
@@ -507,7 +517,7 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
                 }
 
                 return (
-                    ["Period", "Requests", "Total Days"],
+                    ExportLocalization.GetLeaveReportHeaders(language, "trends"),
                     report.Rows.Select(x => new[]
                     {
                         x.Period, x.RequestCount.ToString(), x.TotalDays.ToString(CultureInfo.InvariantCulture)
@@ -517,125 +527,5 @@ public sealed class ExportReportQueryHandler : IRequestHandler<ExportReportQuery
             default:
                 return (null, [], string.Empty);
         }
-    }
-
-    private static string BuildCsv(string[] headers, IReadOnlyList<string[]> rows)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine(string.Join(',', headers.Select(EscapeCsv)));
-        foreach (var row in rows)
-        {
-            sb.AppendLine(string.Join(',', row.Select(EscapeCsv)));
-        }
-
-        return sb.ToString();
-    }
-
-    private static string EscapeCsv(string value)
-    {
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
-        {
-            return $"\"{value.Replace("\"", "\"\"")}\"";
-        }
-
-        return value;
-    }
-
-    private static byte[] BuildXlsx(string title, string[] headers, IReadOnlyList<string[]> rows)
-    {
-        using var workbook = new XLWorkbook();
-        var sheet = workbook.Worksheets.Add("Report");
-        sheet.Cell(1, 1).Value = title;
-        sheet.Cell(1, 1).Style.Font.Bold = true;
-
-        for (var c = 0; c < headers.Length; c++)
-        {
-            sheet.Cell(3, c + 1).Value = headers[c];
-            sheet.Cell(3, c + 1).Style.Font.Bold = true;
-        }
-
-        for (var r = 0; r < rows.Count; r++)
-        {
-            for (var c = 0; c < headers.Length; c++)
-            {
-                sheet.Cell(r + 4, c + 1).Value = rows[r][c];
-            }
-        }
-
-        sheet.Columns().AdjustToContents();
-        using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        return stream.ToArray();
-    }
-
-    private static byte[] BuildSimplePdf(string title, string[] headers, IReadOnlyList<string[]> rows)
-    {
-        var lines = new List<string> { title, string.Empty, string.Join(" | ", headers) };
-        lines.AddRange(rows.Select(r => string.Join(" | ", r)));
-        var text = string.Join("\n", lines);
-        return SimplePdfWriter.Create(text);
-    }
-}
-
-internal static class SimplePdfWriter
-{
-    public static byte[] Create(string text)
-    {
-        var escaped = text
-            .Replace("\\", "\\\\")
-            .Replace("(", "\\(")
-            .Replace(")", "\\)")
-            .Replace("\r", string.Empty);
-        var lines = escaped.Split('\n');
-        var content = new StringBuilder();
-        content.AppendLine("BT /F1 10 Tf 50 750 Td 14 TL");
-        for (var i = 0; i < lines.Length; i++)
-        {
-            if (i > 0)
-            {
-                content.AppendLine("T*");
-            }
-
-            content.Append('(').Append(lines[i]).AppendLine(") Tj");
-        }
-
-        content.AppendLine("ET");
-        var stream = content.ToString();
-        var streamBytes = Encoding.UTF8.GetBytes(stream);
-
-        using var ms = new MemoryStream();
-        void W(string s) => ms.Write(Encoding.ASCII.GetBytes(s));
-        W("%PDF-1.4\n");
-        var offsets = new List<long> { 0 };
-
-        void Object(int id, Action write)
-        {
-            offsets.Add(ms.Position);
-            W($"{id} 0 obj\n");
-            write();
-            W("endobj\n");
-        }
-
-        Object(1, () => W("<< /Type /Catalog /Pages 2 0 R >>"));
-        Object(2, () => W("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"));
-        Object(3, () => W("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>"));
-        Object(4, () =>
-        {
-            W($"<< /Length {streamBytes.Length} >>\nstream\n");
-            ms.Write(streamBytes);
-            W("\nendstream");
-        });
-        Object(5, () => W("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"));
-
-        var xref = ms.Position;
-        W($"xref\n0 {offsets.Count}\n");
-        W("0000000000 65535 f \n");
-        for (var i = 1; i < offsets.Count; i++)
-        {
-            W($"{offsets[i]:D10} 00000 n \n");
-        }
-
-        W($"trailer\n<< /Size {offsets.Count} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF");
-        return ms.ToArray();
     }
 }

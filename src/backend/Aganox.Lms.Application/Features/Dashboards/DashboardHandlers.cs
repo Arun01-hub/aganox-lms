@@ -43,12 +43,37 @@ public sealed class GetEmployeeDashboardQueryHandler : IRequestHandler<GetEmploy
 
         var today = DateOnly.FromDateTime(_clock.UtcNow);
 
-        var balances = await _db.LeaveBalances.AsNoTracking()
+        var dashboardLeaveTypes = await _db.LeaveTypes.AsNoTracking()
+            .Where(x => x.IsActive && (x.Code == "CL" || x.Code == "EL"))
+            .OrderBy(x => x.SortOrder)
+            .ToListAsync(cancellationToken);
+
+        var existingBalances = await _db.LeaveBalances.AsNoTracking()
             .Include(x => x.LeaveType)
             .Where(x => x.EmployeeId == employeeId.Value && x.Year == request.Year)
-            .OrderBy(x => x.LeaveType!.SortOrder)
-            .Select(x => new LeaveBalanceSummaryDto(x.LeaveType!.Code, x.LeaveType.Name, x.Remaining))
             .ToListAsync(cancellationToken);
+
+        var leaveTypeIds = dashboardLeaveTypes.Select(x => x.Id).ToList();
+        var policies = leaveTypeIds.Count == 0
+            ? []
+            : await _db.LeavePolicies.AsNoTracking()
+                .Where(x => x.Year == request.Year && leaveTypeIds.Contains(x.LeaveTypeId))
+                .ToListAsync(cancellationToken);
+
+        var balances = dashboardLeaveTypes
+            .Select(leaveType =>
+            {
+                var balance = existingBalances.FirstOrDefault(x => x.LeaveTypeId == leaveType.Id);
+                if (balance is not null)
+                {
+                    return new LeaveBalanceSummaryDto(leaveType.Code, leaveType.Name, balance.Remaining);
+                }
+
+                var policy = policies.FirstOrDefault(x => x.LeaveTypeId == leaveType.Id);
+                var remaining = policy?.DefaultOpeningBalance ?? 0;
+                return new LeaveBalanceSummaryDto(leaveType.Code, leaveType.Name, remaining);
+            })
+            .ToList();
 
         var requests = await _db.LeaveRequests.AsNoTracking()
             .Include(x => x.LeaveType)

@@ -38,6 +38,7 @@ public sealed record LeaveRequestDetailDto(
     IReadOnlyList<LeaveRequestCommentDto> Comments);
 
 public sealed record CreateLeaveRequestRequest(
+    Guid? EmployeeId,
     Guid LeaveTypeId,
     DateOnly FromDate,
     DateOnly ToDate,

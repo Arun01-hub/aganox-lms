@@ -1,5 +1,8 @@
+using Aganox.Lms.Domain.Entities.Attendance;
+using Aganox.Lms.Domain.Entities.Extensibility;
 using Aganox.Lms.Domain.Entities.Leave;
 using Aganox.Lms.Domain.Entities.Organization;
+using Aganox.Lms.Domain.Entities.Payroll;
 using Aganox.Lms.Domain.Entities.System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -240,5 +243,185 @@ public class BackupHistoryConfiguration : IEntityTypeConfiguration<BackupHistory
     {
         builder.Property(x => x.FilePath).HasMaxLength(500).IsRequired();
         builder.Property(x => x.Status).HasMaxLength(50).IsRequired();
+    }
+}
+
+public class NavigationMenuItemConfiguration : IEntityTypeConfiguration<NavigationMenuItem>
+{
+    public void Configure(EntityTypeBuilder<NavigationMenuItem> builder)
+    {
+        builder.Property(x => x.Code).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.LabelKey).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Route).HasMaxLength(200);
+        builder.Property(x => x.Icon).HasMaxLength(50);
+        builder.Property(x => x.RequiredPermissions).HasMaxLength(500);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.ParentId);
+        builder.HasIndex(x => x.SortOrder);
+        builder.HasOne(x => x.Parent)
+            .WithMany(x => x.Children)
+            .HasForeignKey(x => x.ParentId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class CustomFieldDefinitionConfiguration : IEntityTypeConfiguration<CustomFieldDefinition>
+{
+    public void Configure(EntityTypeBuilder<CustomFieldDefinition> builder)
+    {
+        builder.Property(x => x.FieldKey).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.LabelEn).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.LabelTa).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.EntityScope).HasConversion<string>().HasMaxLength(30);
+        builder.Property(x => x.DataType).HasConversion<string>().HasMaxLength(20);
+        builder.Property(x => x.OptionsJson).HasMaxLength(2000);
+        builder.HasIndex(x => new { x.EntityScope, x.FieldKey }).IsUnique();
+    }
+}
+
+public class CustomFieldValueConfiguration : IEntityTypeConfiguration<CustomFieldValue>
+{
+    public void Configure(EntityTypeBuilder<CustomFieldValue> builder)
+    {
+        builder.Property(x => x.Value).HasMaxLength(2000).IsRequired();
+        builder.HasIndex(x => new { x.DefinitionId, x.EntityId }).IsUnique();
+        builder.HasOne(x => x.Definition)
+            .WithMany(x => x.Values)
+            .HasForeignKey(x => x.DefinitionId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class AttendanceDayConfiguration : IEntityTypeConfiguration<AttendanceDay>
+{
+    public void Configure(EntityTypeBuilder<AttendanceDay> builder)
+    {
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(x => x.Source).HasConversion<string>().HasMaxLength(20);
+        builder.Property(x => x.Remarks).HasMaxLength(500);
+        builder.HasIndex(x => new { x.EmployeeId, x.Date }).IsUnique();
+        builder.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SalaryComponentConfiguration : IEntityTypeConfiguration<SalaryComponent>
+{
+    public void Configure(EntityTypeBuilder<SalaryComponent> builder)
+    {
+        builder.Property(x => x.Code).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.NameEn).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.NameTa).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Category).HasConversion<string>().HasMaxLength(20);
+        builder.Property(x => x.CalculationType).HasConversion<string>().HasMaxLength(30);
+        builder.Property(x => x.BaseComponentCode).HasMaxLength(30);
+        builder.HasIndex(x => x.Code).IsUnique();
+    }
+}
+
+public class SalaryRuleConfiguration : IEntityTypeConfiguration<SalaryRule>
+{
+    public void Configure(EntityTypeBuilder<SalaryRule> builder)
+    {
+        builder.Property(x => x.ParametersJson).HasMaxLength(4000).IsRequired();
+        builder.HasOne(x => x.SalaryComponent)
+            .WithMany(x => x.Rules)
+            .HasForeignKey(x => x.SalaryComponentId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => new { x.SalaryComponentId, x.EffectiveFrom });
+    }
+}
+
+public class EmployeeSalaryRevisionConfiguration : IEntityTypeConfiguration<EmployeeSalaryRevision>
+{
+    public void Configure(EntityTypeBuilder<EmployeeSalaryRevision> builder)
+    {
+        builder.Property(x => x.BasicPay).HasPrecision(18, 2);
+        builder.Property(x => x.Remarks).HasMaxLength(500);
+        builder.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => new { x.EmployeeId, x.EffectiveFrom });
+    }
+}
+
+public class EmployeeSalaryComponentOverrideConfiguration : IEntityTypeConfiguration<EmployeeSalaryComponentOverride>
+{
+    public void Configure(EntityTypeBuilder<EmployeeSalaryComponentOverride> builder)
+    {
+        builder.Property(x => x.FixedAmount).HasPrecision(18, 2);
+        builder.HasOne(x => x.EmployeeSalaryRevision)
+            .WithMany(x => x.ComponentOverrides)
+            .HasForeignKey(x => x.EmployeeSalaryRevisionId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(x => x.SalaryComponent)
+            .WithMany()
+            .HasForeignKey(x => x.SalaryComponentId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => new { x.EmployeeSalaryRevisionId, x.SalaryComponentId }).IsUnique();
+    }
+}
+
+public class PayrollRunConfiguration : IEntityTypeConfiguration<PayrollRun>
+{
+    public void Configure(EntityTypeBuilder<PayrollRun> builder)
+    {
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+        builder.Property(x => x.Notes).HasMaxLength(1000);
+        builder.HasIndex(x => new { x.Year, x.Month }).IsUnique();
+    }
+}
+
+public class PayrollEmployeeResultConfiguration : IEntityTypeConfiguration<PayrollEmployeeResult>
+{
+    public void Configure(EntityTypeBuilder<PayrollEmployeeResult> builder)
+    {
+        builder.Property(x => x.BasicPaySnapshot).HasPrecision(18, 2);
+        builder.Property(x => x.GrossPay).HasPrecision(18, 2);
+        builder.Property(x => x.TotalDeductions).HasPrecision(18, 2);
+        builder.Property(x => x.NetPay).HasPrecision(18, 2);
+        builder.Property(x => x.PaidDays).HasPrecision(9, 2);
+        builder.Property(x => x.LopDays).HasPrecision(9, 2);
+        builder.Property(x => x.InputSnapshotJson).HasMaxLength(8000).IsRequired();
+        builder.Property(x => x.OutputSnapshotJson).HasMaxLength(8000).IsRequired();
+        builder.Property(x => x.CalculatedSnapshotJson).HasMaxLength(16000);
+        builder.HasOne(x => x.PayrollRun).WithMany(x => x.EmployeeResults).HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => new { x.PayrollRunId, x.EmployeeId }).IsUnique();
+    }
+}
+
+public class PayrollLineItemConfiguration : IEntityTypeConfiguration<PayrollLineItem>
+{
+    public void Configure(EntityTypeBuilder<PayrollLineItem> builder)
+    {
+        builder.Property(x => x.ComponentCode).HasMaxLength(30).IsRequired();
+        builder.Property(x => x.ComponentName).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Category).HasConversion<string>().HasMaxLength(20);
+        builder.Property(x => x.Amount).HasPrecision(18, 2);
+        builder.HasOne(x => x.PayrollEmployeeResult)
+            .WithMany(x => x.LineItems)
+            .HasForeignKey(x => x.PayrollEmployeeResultId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class PayrollArrearConfiguration : IEntityTypeConfiguration<PayrollArrear>
+{
+    public void Configure(EntityTypeBuilder<PayrollArrear> builder)
+    {
+        builder.Property(x => x.Amount).HasPrecision(18, 2);
+        builder.Property(x => x.Reason).HasMaxLength(500).IsRequired();
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+        builder.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.TargetPayrollRun).WithMany().HasForeignKey(x => x.TargetPayrollRunId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public class PayrollRunAuditConfiguration : IEntityTypeConfiguration<PayrollRunAudit>
+{
+    public void Configure(EntityTypeBuilder<PayrollRunAudit> builder)
+    {
+        builder.Property(x => x.Action).HasConversion<string>().HasMaxLength(30);
+        builder.Property(x => x.Details).HasMaxLength(2000);
+        builder.HasOne(x => x.PayrollRun).WithMany(x => x.AuditEntries).HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => x.Timestamp);
     }
 }

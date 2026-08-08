@@ -1,17 +1,18 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth.service';
 import { ReportService } from '../../core/report.service';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TranslatePipe],
   template: `
     <div class="d-flex align-items-center mb-4 gap-2">
-      <h1 class="h4 mb-0">Reports</h1>
-      <a routerLink="/" class="btn btn-sm btn-outline-secondary ms-auto">Dashboard</a>
+      <h1 class="h4 mb-0">{{ 'reports.title' | translate }}</h1>
+      <a routerLink="/" class="btn btn-sm btn-outline-secondary ms-auto">{{ 'common.dashboard' | translate }}</a>
     </div>
 
     @if (error()) {
@@ -21,21 +22,21 @@ import { ReportService } from '../../core/report.service';
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-body row g-3 align-items-end">
         <div class="col-md-3">
-          <label class="form-label">Report</label>
+          <label class="form-label">{{ 'reports.report' | translate }}</label>
           <select class="form-select" [(ngModel)]="reportName">
-            <option value="employee-leave">Employee leave</option>
-            <option value="monthly">Monthly summary</option>
-            <option value="yearly">Yearly summary</option>
-            <option value="balances">Leave balances</option>
-            <option value="trends">Trends</option>
+            <option value="employee-leave">{{ 'reports.employeeLeave' | translate }}</option>
+            <option value="monthly">{{ 'reports.monthlySummary' | translate }}</option>
+            <option value="yearly">{{ 'reports.yearlySummary' | translate }}</option>
+            <option value="balances">{{ 'reports.leaveBalances' | translate }}</option>
+            <option value="trends">{{ 'reports.trends' | translate }}</option>
           </select>
         </div>
-        <div class="col-md-2"><label class="form-label">Year</label><input class="form-control" type="number" [(ngModel)]="year" /></div>
-        <div class="col-md-2"><label class="form-label">Month</label><input class="form-control" type="number" [(ngModel)]="month" min="1" max="12" /></div>
-        <div class="col-md-2"><label class="form-label">From</label><input class="form-control" type="date" [(ngModel)]="fromDate" /></div>
-        <div class="col-md-2"><label class="form-label">To</label><input class="form-control" type="date" [(ngModel)]="toDate" /></div>
+        <div class="col-md-2"><label class="form-label">{{ 'common.year' | translate }}</label><input class="form-control" type="number" [(ngModel)]="year" /></div>
+        <div class="col-md-2"><label class="form-label">{{ 'common.month' | translate }}</label><input class="form-control" type="number" [(ngModel)]="month" min="1" max="12" /></div>
+        <div class="col-md-2"><label class="form-label">{{ 'common.from' | translate }}</label><input class="form-control" type="date" [(ngModel)]="fromDate" /></div>
+        <div class="col-md-2"><label class="form-label">{{ 'common.to' | translate }}</label><input class="form-control" type="date" [(ngModel)]="toDate" /></div>
         <div class="col-md-1">
-          <button class="btn btn-aganox w-100" type="button" (click)="run()" [disabled]="loading()">Run</button>
+          <button class="btn btn-aganox w-100" type="button" (click)="run()" [disabled]="loading()">{{ 'reports.run' | translate }}</button>
         </div>
       </div>
     </div>
@@ -59,7 +60,7 @@ import { ReportService } from '../../core/report.service';
               @for (row of rows(); track $index) {
                 <tr>@for (cell of row; track $index) { <td>{{ cell }}</td> }</tr>
               } @empty {
-                <tr><td [attr.colspan]="headers().length || 1" class="text-muted text-center py-3">No data.</td></tr>
+                <tr><td [attr.colspan]="headers().length || 1" class="text-muted text-center py-3">{{ 'common.noData' | translate }}</td></tr>
               }
             </tbody>
           </table>
@@ -71,6 +72,7 @@ import { ReportService } from '../../core/report.service';
 export class ReportsComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly reports = inject(ReportService);
+  private readonly translate = inject(TranslateService);
 
   reportName = 'trends';
   year = new Date().getFullYear();
@@ -94,7 +96,15 @@ export class ReportsComponent implements OnInit {
 
     if (this.reportName === 'trends') {
       this.reports.getTrends(this.fromDate, this.toDate).subscribe({
-        next: (r) => this.showReport(r.title, ['Period', 'Requests', 'Total Days'], r.rows.map((x) => [x.period, String(x.requestCount), String(x.totalDays)])),
+        next: (r) => this.showReport(
+          r.title,
+          [
+            this.translate.instant('reports.colPeriod'),
+            this.translate.instant('reports.colRequests'),
+            this.translate.instant('reports.colTotalDays')
+          ],
+          r.rows.map((x) => [x.period, String(x.requestCount), String(x.totalDays)])
+        ),
         error: () => this.fail(),
         complete: () => this.loading.set(false)
       });
@@ -105,11 +115,20 @@ export class ReportsComponent implements OnInit {
       this.reports.getBalances(this.year).subscribe({
         next: (r) => this.showReport(
           r.title,
-          ['Code', 'Employee', 'Department', 'Type', 'Opening', 'Consumed', 'Remaining'],
+          [
+            this.translate.instant('reports.colCode'),
+            this.translate.instant('reports.colEmployee'),
+            this.translate.instant('reports.colDepartment'),
+            this.translate.instant('reports.colLeaveType'),
+            this.translate.instant('reports.colOpening'),
+            this.translate.instant('reports.colConsumed'),
+            this.translate.instant('reports.colRemaining')
+          ],
           r.rows.map((x) => [
             String(x['employeeCode'] ?? ''), String(x['employeeName'] ?? ''), String(x['departmentName'] ?? ''),
             String(x['leaveTypeCode'] ?? ''), String(x['openingBalance'] ?? ''), String(x['consumed'] ?? ''), String(x['remaining'] ?? '')
-          ])),
+          ])
+        ),
         error: () => this.fail(),
         complete: () => this.loading.set(false)
       });
@@ -120,8 +139,14 @@ export class ReportsComponent implements OnInit {
       this.reports.getMonthly(this.year, this.month).subscribe({
         next: (r) => this.showReport(
           r.title,
-          ['Department', 'Leave Type', 'Requests', 'Days'],
-          r.rows.map((x) => [String(x['departmentName'] ?? ''), String(x['leaveTypeName'] ?? ''), String(x['requestCount'] ?? ''), String(x['totalDays'] ?? '')])),
+          [
+            this.translate.instant('reports.colDepartment'),
+            this.translate.instant('reports.colLeaveType'),
+            this.translate.instant('reports.colRequests'),
+            this.translate.instant('reports.colDays')
+          ],
+          r.rows.map((x) => [String(x['departmentName'] ?? ''), String(x['leaveTypeName'] ?? ''), String(x['requestCount'] ?? ''), String(x['totalDays'] ?? '')])
+        ),
         error: () => this.fail(),
         complete: () => this.loading.set(false)
       });
@@ -129,7 +154,7 @@ export class ReportsComponent implements OnInit {
     }
 
     this.loading.set(false);
-    this.error.set('Select trends, balances, or monthly for preview. Use export for other reports.');
+    this.error.set(this.translate.instant('reports.previewHint'));
   }
 
   export(format: 'csv' | 'xlsx' | 'pdf'): void {
@@ -140,7 +165,7 @@ export class ReportsComponent implements OnInit {
 
     this.reports.exportReport(this.reportName, format, params).subscribe({
       next: (blob) => this.reports.downloadBlob(blob, `${this.reportName}.${format}`),
-      error: () => this.error.set('Export failed.')
+      error: () => this.error.set(this.translate.instant('reports.exportFailed'))
     });
   }
 
@@ -151,7 +176,7 @@ export class ReportsComponent implements OnInit {
   }
 
   private fail(): void {
-    this.error.set('Failed to load report.');
+    this.error.set(this.translate.instant('reports.loadFailed'));
     this.loading.set(false);
   }
 }

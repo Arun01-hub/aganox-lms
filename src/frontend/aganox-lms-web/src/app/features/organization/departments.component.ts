@@ -1,44 +1,45 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth.service';
 import { Department, OrganizationService } from '../../core/organization.service';
 
 @Component({
   selector: 'app-departments',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TranslatePipe],
   template: `
     <div class="d-flex align-items-center mb-4 gap-2">
-      <h1 class="h4 mb-0">Departments</h1>
-      <a routerLink="/employees" class="btn btn-sm btn-outline-secondary ms-auto">Employees</a>
+      <h1 class="h4 mb-0">{{ 'departments.title' | translate }}</h1>
+      <a routerLink="/employees" class="btn btn-sm btn-outline-secondary ms-auto">{{ 'nav.employees' | translate }}</a>
     </div>
 
     @if (canManage()) {
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-          <h2 class="h6">{{ editingId() ? 'Edit department' : 'Add department' }}</h2>
+          <h2 class="h6">{{ (editingId() ? 'departments.editDepartment' : 'departments.addDepartment') | translate }}</h2>
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label">Name</label>
+              <label class="form-label">{{ 'common.name' | translate }}</label>
               <input class="form-control" [(ngModel)]="form.name" />
             </div>
             <div class="col-md-3">
-              <label class="form-label">Code</label>
+              <label class="form-label">{{ 'common.code' | translate }}</label>
               <input class="form-control" [(ngModel)]="form.code" />
             </div>
             <div class="col-md-2 d-flex align-items-end">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" [(ngModel)]="form.isActive" id="deptActive" />
-                <label class="form-check-label" for="deptActive">Active</label>
+                <label class="form-check-label" for="deptActive">{{ 'common.active' | translate }}</label>
               </div>
             </div>
             <div class="col-md-3 d-flex align-items-end gap-2">
               <button class="btn btn-aganox" type="button" (click)="save()" [disabled]="saving()">
-                {{ editingId() ? 'Update' : 'Create' }}
+                {{ (editingId() ? 'common.update' : 'common.create') | translate }}
               </button>
               @if (editingId()) {
-                <button class="btn btn-outline-secondary" type="button" (click)="resetForm()">Cancel</button>
+                <button class="btn btn-outline-secondary" type="button" (click)="resetForm()">{{ 'common.cancel' | translate }}</button>
               }
             </div>
           </div>
@@ -54,10 +55,10 @@ import { Department, OrganizationService } from '../../core/organization.service
         <table class="table table-hover mb-0 align-middle">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Code</th>
-              <th>Status</th>
-              <th>Employees</th>
+              <th>{{ 'common.name' | translate }}</th>
+              <th>{{ 'common.code' | translate }}</th>
+              <th>{{ 'common.status' | translate }}</th>
+              <th>{{ 'departments.employeesCol' | translate }}</th>
               @if (canManage()) {
                 <th></th>
               }
@@ -70,27 +71,27 @@ import { Department, OrganizationService } from '../../core/organization.service
                 <td><code>{{ dept.code }}</code></td>
                 <td>
                   <span class="badge" [class.text-bg-success]="dept.isActive" [class.text-bg-secondary]="!dept.isActive">
-                    {{ dept.isActive ? 'Active' : 'Inactive' }}
+                    {{ (dept.isActive ? 'common.active' : 'common.inactive') | translate }}
                   </span>
                 </td>
                 <td>{{ dept.employeeCount }}</td>
                 @if (canManage()) {
                   <td class="text-end">
-                    <button class="btn btn-sm btn-outline-primary me-1" type="button" (click)="edit(dept)">Edit</button>
+                    <button class="btn btn-sm btn-outline-primary me-1" type="button" (click)="edit(dept)">{{ 'common.edit' | translate }}</button>
                     <button
                       class="btn btn-sm btn-outline-danger"
                       type="button"
                       (click)="remove(dept)"
                       [disabled]="dept.employeeCount > 0"
                     >
-                      Delete
+                      {{ 'common.delete' | translate }}
                     </button>
                   </td>
                 }
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="text-center text-muted py-4">No departments found.</td>
+                <td colspan="5" class="text-center text-muted py-4">{{ 'departments.noDepartments' | translate }}</td>
               </tr>
             }
           </tbody>
@@ -102,6 +103,7 @@ import { Department, OrganizationService } from '../../core/organization.service
 export class DepartmentsComponent implements OnInit {
   private readonly org = inject(OrganizationService);
   private readonly auth = inject(AuthService);
+  private readonly translate = inject(TranslateService);
 
   readonly departments = signal<Department[]>([]);
   readonly editingId = signal<string | null>(null);
@@ -121,7 +123,7 @@ export class DepartmentsComponent implements OnInit {
   load(): void {
     this.org.getDepartments().subscribe({
       next: (items) => this.departments.set(items),
-      error: () => this.error.set('Failed to load departments.')
+      error: () => this.error.set(this.translate.instant('departments.loadFailed'))
     });
   }
 
@@ -139,7 +141,7 @@ export class DepartmentsComponent implements OnInit {
 
   save(): void {
     if (!this.form.name.trim() || !this.form.code.trim()) {
-      this.error.set('Name and code are required.');
+      this.error.set(this.translate.instant('departments.nameCodeRequired'));
       return;
     }
 
@@ -163,19 +165,19 @@ export class DepartmentsComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.error.set(err.error?.errors?.[0] ?? 'Save failed.');
+        this.error.set(err.error?.errors?.[0] ?? this.translate.instant('common.saveFailed'));
       }
     });
   }
 
   remove(dept: Department): void {
-    if (!confirm(`Delete department "${dept.name}"?`)) {
+    if (!confirm(this.translate.instant('departments.deleteConfirm', { name: dept.name }))) {
       return;
     }
 
     this.org.deleteDepartment(dept.id).subscribe({
       next: () => this.load(),
-      error: (err) => this.error.set(err.error?.errors?.[0] ?? 'Delete failed.')
+      error: (err) => this.error.set(err.error?.errors?.[0] ?? this.translate.instant('common.deleteFailed'))
     });
   }
 }

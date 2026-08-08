@@ -58,7 +58,7 @@ public sealed class LeaveRequestsController : ControllerBase
         }
 
         var result = await _mediator.Send(new CreateLeaveRequestCommand(
-            request.LeaveTypeId, request.FromDate, request.ToDate, request.IsHalfDay,
+            request.EmployeeId, request.LeaveTypeId, request.FromDate, request.ToDate, request.IsHalfDay,
             halfDay, request.Remarks, request.Submit), cancellationToken);
 
         return result.Succeeded

@@ -1,7 +1,8 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
+import { firstValueFrom, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface CurrentUser {
@@ -68,6 +69,29 @@ export class AuthService {
 
   changePassword(currentPassword: string, newPassword: string) {
     return this.http.post<void>(`${environment.apiBaseUrl}/auth/change-password`, { currentPassword, newPassword });
+  }
+
+  /** Reload roles/permissions from the server (e.g. after backend permission seed updates). */
+  refreshCurrentUser(): Promise<void> {
+    if (!this.accessToken) {
+      return Promise.resolve();
+    }
+
+    return firstValueFrom(
+      this.http.get<CurrentUser>(`${environment.apiBaseUrl}/auth/me`).pipe(
+        tap((user) => {
+          const stored = this.read();
+          if (!stored) {
+            return;
+          }
+
+          const updated: AuthResponse = { ...stored, user };
+          localStorage.setItem(this.storageKey, JSON.stringify(updated));
+          this.user.set(user);
+        }),
+        catchError(() => of(null))
+      )
+    ).then(() => undefined);
   }
 
   logout(): void {
