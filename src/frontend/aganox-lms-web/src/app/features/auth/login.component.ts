@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -21,6 +22,19 @@ import { LanguageSwitcherComponent } from '../../core/language-switcher.componen
         </div>
         <div class="auth-panel-body">
           <p class="auth-panel-tagline">{{ 'app.tagline' | translate }}</p>
+
+          @if (oidcEnabled) {
+            <button
+              class="btn btn-aganox w-100 mb-3"
+              type="button"
+              [disabled]="loading()"
+              (click)="signInWithIdentityServer()"
+            >
+              <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>
+              {{ loading() ? ('auth.signingIn' | translate) : ('auth.signInWithSso' | translate) }}
+            </button>
+            <p class="text-center text-muted small mb-3">{{ 'auth.orUseLocalAccount' | translate }}</p>
+          }
 
           <form [formGroup]="form" (ngSubmit)="submit()">
             <div class="mb-2">
@@ -59,14 +73,29 @@ import { LanguageSwitcherComponent } from '../../core/language-switcher.componen
     </div>
   `
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
 
+  readonly oidcEnabled = environment.oidc.enabled;
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+
+  ngOnInit(): void {
+    if (!this.auth.isAuthenticated) {
+      return;
+    }
+
+    const user = this.auth.user();
+    void this.router.navigateByUrl(user?.mustChangePassword ? '/change-password' : '/');
+  }
+
+  signInWithIdentityServer(): void {
+    this.error.set(null);
+    this.auth.loginWithOidc();
+  }
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

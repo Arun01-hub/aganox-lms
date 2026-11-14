@@ -93,6 +93,8 @@
   },
   "auth": {
     "signIn": "உள்நுழை",
+    "signInWithSso": "Aganox Identity மூலம் உள்நுழை",
+    "orUseLocalAccount": "அல்லது LMS கணக்குடன் உள்நுழையுங்கள்",
     "signingIn": "உள்நுழைகிறது…",
     "forgotPassword": "கடவுச்சொல் மறந்துவிட்டதா?",
     "invalidCredentials": "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்.",

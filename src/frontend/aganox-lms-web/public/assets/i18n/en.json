@@ -93,6 +93,8 @@
   },
   "auth": {
     "signIn": "Sign in",
+    "signInWithSso": "Sign in with Aganox Identity",
+    "orUseLocalAccount": "Or sign in with your LMS account",
     "signingIn": "Signing in…",
     "forgotPassword": "Forgot password?",
     "invalidCredentials": "Invalid email or password.",

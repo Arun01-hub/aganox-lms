@@ -1,9 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { OAuthService } from 'angular-oauth2-oidc';
 import { catchError, tap } from 'rxjs/operators';
 import { firstValueFrom, of } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { buildOidcAuthConfig } from './oidc.config';
 
 export interface CurrentUser {
   id: string;
@@ -25,7 +27,10 @@ export interface AuthResponse {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storageKey = 'aganox.lms.auth';
+  private readonly oauth = inject(OAuthService, { optional: true });
   readonly user = signal<CurrentUser | null>(this.read()?.user ?? null);
+
+  readonly oidcEnabled = environment.oidc.enabled;
 
   constructor(
     private readonly http: HttpClient,
@@ -33,11 +38,19 @@ export class AuthService {
   ) {}
 
   get accessToken(): string | null {
+    if (this.oidcEnabled && this.oauth?.hasValidAccessToken()) {
+      return this.oauth.getAccessToken();
+    }
+
     return this.read()?.accessToken ?? null;
   }
 
   get isAuthenticated(): boolean {
-    return !!this.accessToken;
+    if (this.oidcEnabled && this.oauth?.hasValidAccessToken()) {
+      return true;
+    }
+
+    return !!this.read()?.accessToken;
   }
 
   hasPermission(permission: string): boolean {
@@ -46,6 +59,32 @@ export class AuthService {
 
   hasRole(role: string): boolean {
     return this.user()?.roles.includes(role) ?? false;
+  }
+
+  async initOidc(): Promise<void> {
+    if (!this.oidcEnabled || !this.oauth) {
+      return;
+    }
+
+    this.oauth.configure(buildOidcAuthConfig());
+    try {
+      await this.oauth.loadDiscoveryDocumentAndTryLogin();
+    } catch {
+      // Identity server may be stopped; local LMS login should still work.
+      return;
+    }
+
+    if (this.oauth.hasValidAccessToken()) {
+      await this.refreshCurrentUser();
+    }
+  }
+
+  loginWithOidc(): void {
+    if (!this.oidcEnabled || !this.oauth) {
+      return;
+    }
+
+    this.oauth.initCodeFlow();
   }
 
   login(email: string, password: string) {
@@ -80,6 +119,11 @@ export class AuthService {
     return firstValueFrom(
       this.http.get<CurrentUser>(`${environment.apiBaseUrl}/auth/me`).pipe(
         tap((user) => {
+          if (this.oidcEnabled && this.oauth?.hasValidAccessToken()) {
+            this.user.set(user);
+            return;
+          }
+
           const stored = this.read();
           if (!stored) {
             return;
@@ -95,8 +139,14 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this.oidcEnabled && this.oauth?.hasValidAccessToken()) {
+      this.user.set(null);
+      this.oauth.logOut();
+      return;
+    }
+
     const refreshToken = this.read()?.refreshToken;
-    if (refreshToken && this.accessToken) {
+    if (refreshToken && this.read()?.accessToken) {
       this.http
         .post(`${environment.apiBaseUrl}/auth/logout`, { refreshToken })
         .subscribe({ error: () => undefined });
