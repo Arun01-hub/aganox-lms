@@ -1,0 +1,13 @@
+---
+description: .NET / ASP.NET conventions for Aganox services
+globs: **/*.{cs,csproj,sln}
+alwaysApply: false
+---
+
+# .NET
+
+- Target framework per repo SDK (see global.json or README); do not downgrade without request.
+- No business logic in controllers/pages; use Application services.
+- EF migrations: one migration per logical change; update snapshot.
+- Configuration: `appsettings.json` for non-secret defaults; secrets in `appsettings.*.local.json` (gitignored).
+- Integration tests: use existing test factories patterns in `tests/`.

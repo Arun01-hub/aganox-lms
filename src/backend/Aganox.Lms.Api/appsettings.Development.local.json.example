@@ -1,0 +1,11 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=AganoxLms;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+  },
+  "Oidc": {
+    "Enabled": true,
+    "Authority": "https://localhost:7036",
+    "Audience": "aganox.lms.api",
+    "DisableCertificateValidation": true
+  }
+}

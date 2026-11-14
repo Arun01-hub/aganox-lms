@@ -1,0 +1,14 @@
+---
+description: Aganox platform rules for AI agents
+alwaysApply: true
+---
+
+# Aganox platform
+
+- One repo = one deployable app ([APP_CATALOG](https://github.com/Arun01-hub/aganox-standards/blob/main/docs/APP_CATALOG.md)).
+- Never commit secrets. Use gitignored `*.local.json`, `.env`, user secrets; commit only `*.example` templates.
+- Prefer existing `scripts/*.ps1` on Windows over ad-hoc commands.
+- Keep diffs small; match layer boundaries (Domain / Application / Infrastructure / host).
+- Run the repo test command before claiming work is done.
+- Do not add packages without clear need.
+- Cross-repo work: list repos and start with Identity when OAuth is involved.

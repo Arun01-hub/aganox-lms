@@ -1,0 +1,11 @@
+---
+description: Aganox LMS repo context
+alwaysApply: true
+---
+
+# LMS
+
+- Monorepo layout: backend solution under `src/backend`, Angular under `src/frontend/aganox-lms-web`.
+- JWT may be used when OIDC disabled; prefer OIDC path aligned with Identity for new auth work.
+- Production artifacts: `scripts/publish-server.ps1`, `build-installer.ps1` — do not check large binaries into git.
+- Design docs in `docs/design/` describe target architecture; code may lag — note gaps in PR text.

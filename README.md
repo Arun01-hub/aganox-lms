@@ -1,17 +1,7 @@
 # lms-pay (Aganox LMS)
 
 Enterprise Leave Management + Payroll — ASP.NET Core + Angular.
-
-## Status
-
-Phases 1–8 implemented:
-
-- Foundation, organization, leave config, requests & balances
-- Approval workflow & notifications
-- Dashboards & reports
-- Admin, audit, backup
-- **Hardening, publish scripts, Inno Setup installer, documentation, CI**
-- **Payroll module:** configurable salary components/rules, attendance, monthly payroll runs, LOP, arrears, payslips, payroll reports (EN/TA UI)
+AI-assisted development: see [AGENTS.md](AGENTS.md) and [Aganox AI standards](https://github.com/Arun01-hub/aganox-standards/blob/main/docs/AI_DRIVEN_DEVELOPMENT.md).
 
 ## Prerequisites
 
@@ -115,11 +105,3 @@ docs/                 # Deployment, admin, user guides
 tests/                # Domain, application, API integration tests
 ```
 
-## Related Aganox repositories
-
-This repo contains **Aganox LMS only**. Other products live in separate repositories:
-
-| Repository | Product |
-|------------|---------|
-| [Aganox-Identity](../Aganox-Identity) | OpenIddict authentication server |
-| [Aganox-Rental](../Aganox-Rental) | Property rental API + SPA (uses Identity) |

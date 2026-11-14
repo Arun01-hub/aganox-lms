@@ -1,0 +1,14 @@
+---
+description: Forbid billable Azure and Cloudflare mutations via Cursor
+alwaysApply: true
+---
+
+# No billable cloud actions
+
+Do not create, scale, deploy, or purchase paid Azure or Cloudflare resources via MCP or shell without the user explicitly accepting billing in the same message.
+
+Allowed: read-only discovery, local dev, drafting IaC in the repo without apply.
+
+Forbidden without explicit approval: `az deployment`, `terraform apply`, `wrangler deploy`, plan upgrades, paid SKUs, production-scale usage.
+
+When cost is unclear, stop and ask.

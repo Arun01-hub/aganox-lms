@@ -1,0 +1,12 @@
+---
+description: Angular SPA conventions for Aganox frontends
+globs: **/aganox-*-web/**/*.{ts,html,scss,json}
+alwaysApply: false
+---
+
+# Angular
+
+- Standalone components and `app.config.ts` patterns used in repo.
+- Auth: OIDC via existing `auth.service` / `oidc.config`; do not embed client secrets in SPA.
+- i18n: update `public/assets/i18n/en.json` and `ta.json` together when adding user-visible strings.
+- Proxy dev API via `proxy.conf.json`; avoid hard-coded production URLs in `environment.ts`.
